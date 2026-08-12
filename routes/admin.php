@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\AuthenticatedSessionController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\GuruController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->prefix('admin')->name('admin.')->group(function () {
@@ -12,5 +14,7 @@ Route::middleware('guest')->prefix('admin')->name('admin.')->group(function () {
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
-    Route::get('/', fn () => 'Admin area placeholder — F-004 foundation only.')->name('dashboard');
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::resource('guru', GuruController::class)->except(['show']);
 });
