@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
     ]);
 
     $this->call(RoleAndUserSeeder::class);
+    $this->call(CmsDemoSeeder::class);
 }
 
 }
