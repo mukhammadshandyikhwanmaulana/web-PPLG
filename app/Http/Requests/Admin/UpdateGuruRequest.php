@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Admin;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
 class UpdateGuruRequest extends FormRequest
@@ -16,6 +16,7 @@ class UpdateGuruRequest extends FormRequest
     public function rules(): array
     {
         return [
+            // Akun
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required', 'string', 'email', 'max:255',
@@ -23,6 +24,13 @@ class UpdateGuruRequest extends FormRequest
             ],
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'is_active' => ['sometimes', 'boolean'],
+
+            // Profil (F-008)
+            'position' => ['nullable', 'string', 'max:255'],
+            'expertise' => ['nullable', 'string', 'max:255'],
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'staff_is_active' => ['sometimes', 'boolean'],
         ];
     }
 }

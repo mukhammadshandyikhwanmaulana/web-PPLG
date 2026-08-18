@@ -2,9 +2,12 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\StaffMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -138,5 +141,140 @@ class GuruManagementTest extends TestCase
 
         $response->assertSessionHasErrors('email');
         $this->assertGuest();
+    }
+
+    public function test_admin_can_create_guru_with_full_profile(): void
+    {
+        $response = $this->actingAs($this->admin)->post(route('admin.guru.store'), [
+            'name' => 'Guru Lengkap',
+            'email' => 'guru.lengkap@dev.local',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'is_active' => '1',
+            'position' => 'Guru Produktif',
+            'expertise' => 'Pemrograman Web',
+            'sort_order' => '5',
+            'staff_is_active' => '1',
+        ]);
+
+        $response->assertRedirect(route('admin.guru.index'));
+
+        $user = User::where('email', 'guru.lengkap@dev.local')->first();
+        $this->assertNotNull($user);
+
+        $staffMember = StaffMember::where('user_id', $user->id)->first();
+        $this->assertNotNull($staffMember);
+        $this->assertEquals('Guru Lengkap', $staffMember->name);
+        $this->assertEquals('Guru Produktif', $staffMember->position);
+        $this->assertEquals('Pemrograman Web', $staffMember->expertise);
+        $this->assertEquals(5, $staffMember->sort_order);
+        $this->assertTrue($staffMember->is_active);
+    }
+
+    public function test_update_password_empty_does_not_change_password(): void
+    {
+        $guru = User::factory()->create();
+        $guru->assignRole('guru');
+        $originalHash = $guru->password;
+
+        $this->actingAs($this->admin)->put(route('admin.guru.update', $guru), [
+            'name' => $guru->name,
+            'email' => $guru->email,
+            'is_active' => '1',
+        ]);
+
+        $this->assertEquals($originalHash, $guru->fresh()->password);
+    }
+
+    public function test_admin_can_change_guru_password(): void
+    {
+        $guru = User::factory()->create();
+        $guru->assignRole('guru');
+
+        $this->actingAs($this->admin)->put(route('admin.guru.update', $guru), [
+            'name' => $guru->name,
+            'email' => $guru->email,
+            'is_active' => '1',
+            'password' => 'passwordbaru123',
+            'password_confirmation' => 'passwordbaru123',
+        ]);
+
+        $this->assertTrue(Hash::check('passwordbaru123', $guru->fresh()->password));
+    }
+
+    public function test_photo_upload_creates_media_and_links_to_staff_member(): void
+    {
+        Storage::fake('public');
+
+        $response = $this->actingAs($this->admin)->post(route('admin.guru.store'), [
+            'name' => 'Guru Berfoto',
+            'email' => 'guru.berfoto@dev.local',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'photo' => UploadedFile::fake()->image('foto.jpg'),
+        ]);
+
+        $response->assertRedirect(route('admin.guru.index'));
+
+        $user = User::where('email', 'guru.berfoto@dev.local')->first();
+        $staffMember = StaffMember::where('user_id', $user->id)->first();
+
+        $this->assertNotNull($staffMember->photo_media_id);
+        Storage::disk('public')->assertExists($staffMember->photo->file_path);
+    }
+
+    public function test_staff_profile_status_independent_from_account_status(): void
+    {
+        $this->actingAs($this->admin)->post(route('admin.guru.store'), [
+            'name' => 'Guru Status Beda',
+            'email' => 'guru.statusbeda@dev.local',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'is_active' => '1',
+            'staff_is_active' => '0',
+        ]);
+
+        $user = User::where('email', 'guru.statusbeda@dev.local')->first();
+        $staffMember = StaffMember::where('user_id', $user->id)->first();
+
+        $this->assertTrue($user->is_active);
+        $this->assertFalse($staffMember->is_active);
+    }
+
+    public function test_destroy_deactivates_both_account_and_profile(): void
+    {
+        $this->actingAs($this->admin)->post(route('admin.guru.store'), [
+            'name' => 'Guru Akan Nonaktif',
+            'email' => 'guru.nonaktif@dev.local',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $user = User::where('email', 'guru.nonaktif@dev.local')->first();
+
+        $this->actingAs($this->admin)->delete(route('admin.guru.destroy', $user));
+
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+        $this->assertFalse($user->fresh()->is_active);
+        $this->assertFalse($user->fresh()->staffMember->is_active);
+    }
+
+    public function test_editing_legacy_guru_without_staff_member_creates_one(): void
+    {
+        // Simulasi Guru lama (dibuat sebelum F-008) — tidak punya StaffMember.
+        $guru = User::factory()->create();
+        $guru->assignRole('guru');
+        $this->assertNull($guru->staffMember);
+
+        $this->actingAs($this->admin)->put(route('admin.guru.update', $guru), [
+            'name' => $guru->name,
+            'email' => $guru->email,
+            'is_active' => '1',
+            'position' => 'Guru Baru Ditambahkan',
+        ]);
+
+        $staffMember = StaffMember::where('user_id', $guru->id)->first();
+        $this->assertNotNull($staffMember);
+        $this->assertEquals('Guru Baru Ditambahkan', $staffMember->position);
     }
 }

@@ -10,22 +10,40 @@
         <table class="w-full text-sm">
             <thead class="bg-gray-50 text-left text-gray-500">
                 <tr>
+                    <th class="px-4 py-2">Foto</th>
                     <th class="px-4 py-2">Nama</th>
+                    <th class="px-4 py-2">Jabatan</th>
                     <th class="px-4 py-2">Email</th>
-                    <th class="px-4 py-2">Status</th>
+                    <th class="px-4 py-2">Status Akun</th>
+                    <th class="px-4 py-2">Status Profil</th>
                     <th class="px-4 py-2 text-right">Aksi</th>
                 </tr>
             </thead>
             <tbody class="divide-y">
                 @forelse ($guru as $item)
                     <tr>
+                        <td class="px-4 py-2">
+                            @if ($item->staffMember?->photo)
+                                <img src="{{ Storage::url($item->staffMember->photo->file_path) }}" alt="{{ $item->name }}" class="w-10 h-10 rounded-full object-cover">
+                            @else
+                                <span class="inline-flex w-10 h-10 rounded-full bg-gray-100 items-center justify-center text-gray-400 text-xs">N/A</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-2">{{ $item->name }}</td>
+                        <td class="px-4 py-2 text-gray-500">{{ $item->staffMember?->position ?? '—' }}</td>
                         <td class="px-4 py-2">{{ $item->email }}</td>
                         <td class="px-4 py-2">
                             @if ($item->is_active)
                                 <span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Aktif</span>
                             @else
                                 <span class="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">Nonaktif</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-2">
+                            @if ($item->staffMember?->is_active)
+                                <span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Tampil</span>
+                            @else
+                                <span class="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">Disembunyikan</span>
                             @endif
                         </td>
                         <td class="px-4 py-2 text-right space-x-2">
@@ -38,7 +56,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="px-4 py-6 text-center text-gray-400">Belum ada akun Guru.</td></tr>
+                    <tr><td colspan="7" class="px-4 py-6 text-center text-gray-400">Belum ada akun Guru.</td></tr>
                 @endforelse
             </tbody>
         </table>

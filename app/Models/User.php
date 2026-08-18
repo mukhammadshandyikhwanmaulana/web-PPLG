@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -30,5 +31,14 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Profil publik Guru (F-008). Nullable — Guru lama yang dibuat
+     * sebelum F-008 belum tentu memiliki baris ini sampai diedit ulang.
+     */
+    public function staffMember(): HasOne
+    {
+        return $this->hasOne(StaffMember::class);
     }
 }
