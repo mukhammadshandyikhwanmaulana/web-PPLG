@@ -19,10 +19,11 @@
                 <div class="pt-4 pb-1 px-3 text-xs uppercase text-gray-500">Manajemen Akun</div>
                 <a href="{{ route('admin.guru.index') }}" class="block px-3 py-2 rounded hover:bg-gray-800 {{ request()->routeIs('admin.guru.*') ? 'bg-gray-800' : '' }}">Guru</a>
 
-                <div class="pt-4 pb-1 px-3 text-xs uppercase text-gray-500">Manajemen Konten</div>
-                @foreach (['Profil', 'Fasilitas', 'Prestasi', 'Karya Siswa', 'Kegiatan', 'Unit Usaha', 'Mitra', 'FAQ'] as $label)
-                    <span class="block px-3 py-2 rounded text-gray-500 cursor-not-allowed">{{ $label }} <span class="text-xs">(segera)</span></span>
-                @endforeach
+            <div class="pt-4 pb-1 px-3 text-xs uppercase text-gray-500">Manajemen Konten</div>
+                <a href="{{ route('admin.profil.edit') }}" class="block px-3 py-2 rounded hover:bg-gray-800 {{ request()->routeIs('admin.profil.*') ? 'bg-gray-800' : '' }}">Profil</a>
+            @foreach (['Fasilitas', 'Prestasi', 'Karya Siswa', 'Kegiatan', 'Unit Usaha', 'Mitra', 'FAQ'] as $label)
+                <span class="block px-3 py-2 rounded text-gray-500 cursor-not-allowed">{{ $label }} <span class="text-xs">(segera)</span></span>
+            @endforeach
 
                 <div class="pt-4 pb-1 px-3 text-xs uppercase text-gray-500">System</div>
                 @foreach (['Media', 'Pengaturan', 'Activity Log'] as $label)
