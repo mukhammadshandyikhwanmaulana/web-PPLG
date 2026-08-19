@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AuthenticatedSessionController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\FacilityController;
 use App\Http\Controllers\Admin\GuruController;
 use App\Http\Controllers\Admin\ProfileContentController;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +37,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Kelola Konten Profil (singleton — hanya edit/update)
         Route::get('profil', [ProfileContentController::class, 'edit'])->name('profil.edit');
         Route::put('profil', [ProfileContentController::class, 'update'])->name('profil.update');
+
+        // Manajemen Fasilitas
+        Route::resource('fasilitas', FacilityController::class)
+            ->parameters(['fasilitas' => 'facility'])
+            ->except(['show']);
     });
 
 });
