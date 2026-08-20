@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AchievementController;
 use App\Http\Controllers\Admin\AuthenticatedSessionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FacilityController;
@@ -41,6 +42,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Manajemen Fasilitas
         Route::resource('fasilitas', FacilityController::class)
             ->parameters(['fasilitas' => 'facility'])
+            ->except(['show']);
+
+        // Manajemen Prestasi
+        Route::resource('prestasi', AchievementController::class)
+            ->parameters(['prestasi' => 'achievement'])
             ->except(['show']);
     });
 

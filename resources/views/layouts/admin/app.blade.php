@@ -22,7 +22,8 @@
                 <div class="pt-4 pb-1 px-3 text-xs uppercase text-gray-500">Manajemen Konten</div>
                 <a href="{{ route('admin.profil.edit') }}" class="block px-3 py-2 rounded hover:bg-gray-800 {{ request()->routeIs('admin.profil.*') ? 'bg-gray-800' : '' }}">Profil</a>
                 <a href="{{ route('admin.fasilitas.index') }}" class="block px-3 py-2 rounded hover:bg-gray-800 {{ request()->routeIs('admin.fasilitas.*') ? 'bg-gray-800' : '' }}">Fasilitas</a>
-            @foreach (['Prestasi', 'Karya Siswa', 'Kegiatan', 'Unit Usaha', 'Mitra', 'FAQ'] as $label)
+                <a href="{{ route('admin.prestasi.index') }}" class="block px-3 py-2 rounded hover:bg-gray-800 {{ request()->routeIs('admin.prestasi.*') ? 'bg-gray-800' : '' }}">Prestasi</a>
+            @foreach (['Karya Siswa', 'Kegiatan', 'Unit Usaha', 'Mitra', 'FAQ'] as $label)
                 <span class="block px-3 py-2 rounded text-gray-500 cursor-not-allowed">{{ $label }} <span class="text-xs">(segera)</span></span>
             @endforeach
 
