@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FacilityController;
 use App\Http\Controllers\Admin\GuruController;
 use App\Http\Controllers\Admin\ProfileContentController;
+use App\Http\Controllers\Admin\StudentWorkController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -47,6 +48,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Manajemen Prestasi
         Route::resource('prestasi', AchievementController::class)
             ->parameters(['prestasi' => 'achievement'])
+            ->except(['show']);
+
+        // Manajemen Karya Siswa
+        Route::resource('karya-siswa', StudentWorkController::class)
+            ->parameters(['karya-siswa' => 'student_work'])
             ->except(['show']);
     });
 
