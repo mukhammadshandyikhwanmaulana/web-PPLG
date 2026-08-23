@@ -46,48 +46,28 @@ class ProfileContentManagementTest extends TestCase
     {
         $response = $this->actingAs($this->admin)->put(route('admin.profil.update'), [
             'history_content' => 'Sejarah baru.',
-            'vision_mission_content' => 'Visi misi baru.',
+            'vision_content' => 'Visi baru.',
+            'mission_content' => 'Misi baru.',
             'about_excerpt' => 'Ringkasan baru.',
-            'meta_title' => 'Judul SEO',
-            'meta_description' => 'Deskripsi SEO.',
         ]);
 
         $response->assertRedirect(route('admin.profil.edit'));
 
         $this->assertDatabaseHas('profile_contents', [
             'history_content' => 'Sejarah baru.',
-            'vision_mission_content' => 'Visi misi baru.',
+            'vision_content' => 'Visi baru.',
+            'mission_content' => 'Misi baru.',
             'about_excerpt' => 'Ringkasan baru.',
-            'meta_title' => 'Judul SEO',
-            'meta_description' => 'Deskripsi SEO.',
         ]);
     }
 
     public function test_updated_by_is_set_from_authenticated_admin(): void
     {
         $this->actingAs($this->admin)->put(route('admin.profil.update'), [
-            'meta_title' => 'Judul',
+            'history_content' => 'Pembaruan Sejarah.',
         ]);
 
         $profile = ProfileContent::first();
         $this->assertEquals($this->admin->id, $profile->updated_by);
-    }
-
-    public function test_meta_title_over_60_characters_is_rejected(): void
-    {
-        $response = $this->actingAs($this->admin)->put(route('admin.profil.update'), [
-            'meta_title' => str_repeat('a', 61),
-        ]);
-
-        $response->assertSessionHasErrors('meta_title');
-    }
-
-    public function test_meta_description_over_160_characters_is_rejected(): void
-    {
-        $response = $this->actingAs($this->admin)->put(route('admin.profil.update'), [
-            'meta_description' => str_repeat('a', 161),
-        ]);
-
-        $response->assertSessionHasErrors('meta_description');
     }
 }

@@ -26,7 +26,8 @@ class CmsDemoSeeder extends Seeder
     {
         ProfileContent::firstOrCreate([], [
             'history_content' => 'Contoh teks sejarah RPL menjadi PPLG (data demo, belum konten final).',
-            'vision_mission_content' => 'Contoh teks visi & misi (data demo).',
+            'vision_content' => 'Contoh teks visi (data demo).',
+            'mission_content' => 'Contoh teks misi (data demo).',
             'about_excerpt' => 'Contoh ringkasan Tentang PPLG untuk Beranda (data demo).',
         ]);
 

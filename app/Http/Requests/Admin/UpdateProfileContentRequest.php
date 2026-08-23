@@ -15,10 +15,9 @@ class UpdateProfileContentRequest extends FormRequest
     {
         return [
             'history_content' => ['nullable', 'string'],
-            'vision_mission_content' => ['nullable', 'string'],
+            'vision_content' => ['nullable', 'string'],
+            'mission_content' => ['nullable', 'string'],
             'about_excerpt' => ['nullable', 'string'],
-            'meta_title' => ['nullable', 'string', 'max:60'],
-            'meta_description' => ['nullable', 'string', 'max:160'],
         ];
     }
 }

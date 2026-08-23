@@ -1,4 +1,6 @@
-@php $sw = $studentWork ?? null; @endphp
+@php
+    $sw = $studentWork ?? null;
+@endphp
 
 <div class="space-y-5">
     {{-- Judul Karya --}}
@@ -6,11 +8,11 @@
         <label for="title" class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
             Judul Karya <span class="text-rose-500">*</span>
         </label>
-        <input type="text" id="title" name="title" value="{{ old('title', $sw->title ?? '') }}" 
+        <input type="text" id="title" name="title" value="{{ old('title', $sw?->title) }}"
                placeholder="Masukkan judul karya..."
-               class="w-full rounded-lg border-gray-300 text-xs sm:text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm transition-all py-2.5 px-3">
-        @error('title') 
-            <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p> 
+               class="w-full rounded-lg border-gray-300 text-xs sm:text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm transition-all py-2.5 px-3" required>
+        @error('title')
+            <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
         @enderror
     </div>
 
@@ -21,30 +23,30 @@
             <label for="contributor_name" class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
                 Nama Kelas / Siswa <span class="text-rose-500">*</span>
             </label>
-            <input type="text" id="contributor_name" name="contributor_name" value="{{ old('contributor_name', $sw->contributor_name ?? '') }}" 
+            <input type="text" id="contributor_name" name="contributor_name" value="{{ old('contributor_name', $sw?->contributor_name) }}"
                    placeholder="Nama kelas/siswa pembuat..."
-                   class="w-full rounded-lg border-gray-300 text-xs sm:text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm transition-all py-2.5 px-3">
-            @error('contributor_name') 
-                <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p> 
+                   class="w-full rounded-lg border-gray-300 text-xs sm:text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm transition-all py-2.5 px-3" required>
+            @error('contributor_name')
+                <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
             @enderror
         </div>
 
         {{-- Pembimbing --}}
         <div>
             <label for="supervisor_id" class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
-                Guru Produktif PPLG
+                Guru Pembimbing
             </label>
-            <select id="supervisor_id" name="supervisor_id" 
+            <select id="supervisor_id" name="supervisor_id"
                     class="w-full rounded-lg border-gray-300 text-xs sm:text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm bg-white cursor-pointer py-2.5 px-3">
                 <option value="">— Tidak ada —</option>
                 @foreach ($supervisors ?? [] as $s)
-                    <option value="{{ $s->id }}" @selected(old('supervisor_id', $sw->supervisor_id ?? null) == $s->id)>
-                        {{ $s->name }} @if(! $s->is_active) (nonaktif) @endif
+                    <option value="{{ $s->id }}" @selected(old('supervisor_id', $sw?->supervisor_id) == $s->id)>
+                        {{ $s->name }} @if(!$s->is_active && old('supervisor_id', $sw?->supervisor_id) != $s->id) (nonaktif) @endif
                     </option>
                 @endforeach
             </select>
-            @error('supervisor_id') 
-                <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p> 
+            @error('supervisor_id')
+                <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
             @enderror
         </div>
     </div>
@@ -54,11 +56,11 @@
         <label for="description" class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
             Deskripsi Karya
         </label>
-        <textarea id="description" name="description" rows="4" 
+        <textarea id="description" name="description" rows="4"
                   placeholder="Jelaskan detail mengenai karya ini..."
-                  class="w-full rounded-lg border-gray-300 text-xs sm:text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm transition-all py-2.5 px-3">{{ old('description', $sw->description ?? '') }}</textarea>
-        @error('description') 
-            <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p> 
+                  class="w-full rounded-lg border-gray-300 text-xs sm:text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm transition-all py-2.5 px-3">{{ old('description', $sw?->description) }}</textarea>
+        @error('description')
+            <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
         @enderror
     </div>
 
@@ -69,11 +71,11 @@
             <label for="demo_url" class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
                 Link Demo / Website
             </label>
-            <input type="url" id="demo_url" name="demo_url" value="{{ old('demo_url', $sw->demo_url ?? '') }}" 
+            <input type="url" id="demo_url" name="demo_url" value="{{ old('demo_url', $sw?->demo_url) }}"
                    placeholder="https://..."
                    class="w-full rounded-lg border-gray-300 text-xs sm:text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm transition-all py-2.5 px-3">
-            @error('demo_url') 
-                <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p> 
+            @error('demo_url')
+                <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
             @enderror
         </div>
 
@@ -82,16 +84,13 @@
             <label for="status" class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
                 Status Publikasi <span class="text-rose-500">*</span>
             </label>
-            <select id="status" name="status" 
-                    class="w-full rounded-lg border-gray-300 text-xs sm:text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm bg-white cursor-pointer py-2.5 px-3">
-                @foreach (\App\Enums\PublishStatus::cases() as $status)
-                    <option value="{{ $status->value }}" @selected(old('status', is_object($sw->status ?? null) ? $sw->status->value : ($sw->status ?? 'draft')) === $status->value)>
-                        {{ ucfirst($status->value) }}
-                    </option>
-                @endforeach
+            <select id="status" name="status"
+                    class="w-full rounded-lg border-gray-300 text-xs sm:text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm bg-white cursor-pointer py-2.5 px-3" required>
+                <option value="draft" @selected(old('status', is_object($sw?->status) ? $sw->status->value : ($sw?->status ?? 'draft')) === 'draft')>Draft</option>
+                <option value="published" @selected(old('status', is_object($sw?->status) ? $sw->status->value : $sw?->status) === 'published')>Published</option>
             </select>
-            @error('status') 
-                <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p> 
+            @error('status')
+                <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
             @enderror
         </div>
     </div>
@@ -99,8 +98,8 @@
     {{-- Featured Checkbox Card --}}
     <div class="bg-gray-50 border border-gray-200 rounded-xl p-3.5 sm:p-4">
         <label class="flex items-start gap-3 cursor-pointer select-none">
-            <input type="checkbox" name="is_featured" value="1" 
-                   @checked(old('is_featured', $sw->is_featured ?? false))
+            <input type="checkbox" name="is_featured" value="1"
+                   @checked(old('is_featured', $sw?->is_featured))
                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 mt-0.5 cursor-pointer">
             <div>
                 <span class="block text-xs sm:text-sm font-semibold text-gray-800">Tampilkan sebagai Featured (Karya Unggulan)</span>
@@ -109,13 +108,33 @@
         </label>
     </div>
 
-    {{-- Upload Gambar dengan Live Preview & Validasi --}}
+    {{-- Existing Gallery (Khusus Mode Edit) --}}
+    @if ($sw && isset($sw->galleries) && $sw->galleries->count() > 0)
+        <div class="border border-gray-200 rounded-xl p-4 bg-gray-50/30">
+            <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
+                Galeri Foto Saat Ini
+            </label>
+            <p class="text-xs text-gray-500 mb-3">Centang foto yang ingin dihapus dari galeri:</p>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                @foreach ($sw->galleries as $gallery)
+                    <div class="relative border border-gray-200 rounded-lg overflow-hidden bg-white p-2 shadow-sm flex flex-col items-center">
+                        <img src="{{ Storage::url($gallery->image_path ?? $gallery->image) }}" alt="Existing Gallery" class="w-full h-20 object-cover rounded mb-2">
+                        <label class="flex items-center gap-1.5 text-xs text-rose-600 font-medium cursor-pointer select-none">
+                            <input type="checkbox" name="remove_gallery_ids[]" value="{{ $gallery->id }}" class="rounded border-gray-300 text-rose-600 focus:ring-rose-500">
+                            <span>Hapus</span>
+                        </label>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    {{-- Upload Gambar Baru --}}
     <div>
         <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
             Unggah Gambar Baru
         </label>
 
-        {{-- Box Upload --}}
         <label for="images" class="mt-1 flex flex-col items-center justify-center px-4 py-6 border-2 border-gray-300 border-dashed rounded-xl bg-gray-50/50 hover:bg-gray-100/80 transition-colors cursor-pointer">
             <div class="space-y-1 text-center">
                 <svg class="mx-auto h-8 w-8 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
@@ -132,27 +151,25 @@
         {{-- Container Live Preview --}}
         <div id="image-preview-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mt-3 hidden"></div>
 
-        @error('images') 
-            <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p> 
+        @error('images')
+            <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
         @enderror
-        @error('images.*') 
-            <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p> 
+        @error('images.*')
+            <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
         @enderror
     </div>
 </div>
 
-{{-- Script Validasi Ukuran File & Preview Gambar --}}
 <script>
     function previewImages(event) {
         const container = document.getElementById('image-preview-container');
         container.innerHTML = '';
         const files = Array.from(event.target.files);
 
-        const MAX_TOTAL_SIZE = 8 * 1024 * 1024; // 8 MB batas total POST PHP
-        const MAX_FILE_SIZE = 2 * 1024 * 1024;  // 2 MB per file
+        const MAX_TOTAL_SIZE = 8 * 1024 * 1024;
+        const MAX_FILE_SIZE = 2 * 1024 * 1024;
         const MAX_FILES_COUNT = 5;
 
-        // 1. Cek jumlah file
         if (files.length > MAX_FILES_COUNT) {
             alert('Maksimal hanya boleh mengunggah 5 file gambar sekaligus.');
             event.target.value = '';
@@ -160,7 +177,6 @@
             return;
         }
 
-        // 2. Cek ukuran per file dan total ukuran
         let totalSize = 0;
         for (let file of files) {
             if (file.size > MAX_FILE_SIZE) {
@@ -173,13 +189,12 @@
         }
 
         if (totalSize > MAX_TOTAL_SIZE) {
-            alert('Total ukuran seluruh gambar melebihi batas 8 MB! Harap kurangi jumlah atau ukuran foto.');
+            alert('Total ukuran seluruh gambar melebihi batas!');
             event.target.value = '';
             container.classList.add('hidden');
             return;
         }
 
-        // 3. Render Preview Gambar
         if (files.length > 0) {
             container.classList.remove('hidden');
             files.forEach((file) => {
