@@ -1,32 +1,97 @@
 @extends('layouts.admin.app')
 @section('title', 'Tambah Fasilitas')
+
 @section('content')
-    <h1 class="text-xl font-semibold mb-6">Tambah Fasilitas</h1>
-    <form method="POST" action="{{ route('admin.fasilitas.store') }}" enctype="multipart/form-data" class="bg-white rounded-lg border p-6 max-w-lg space-y-4">
-        @csrf
-        <div>
-            <label for="name" class="block text-sm font-medium mb-1">Nama</label>
-            <input type="text" name="name" id="name" value="{{ old('name') }}" required class="w-full border rounded px-3 py-2 text-sm">
-            @error('name') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
-        </div>
-        <div>
-            <label for="description" class="block text-sm font-medium mb-1">Deskripsi</label>
-            <textarea name="description" id="description" rows="4" class="w-full border rounded px-3 py-2 text-sm">{{ old('description') }}</textarea>
-            @error('description') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
-        </div>
-        <div>
-            <label for="photo" class="block text-sm font-medium mb-1">Foto</label>
-            <input type="file" name="photo" id="photo" accept="image/jpeg,image/png,image/webp" class="w-full border rounded px-3 py-2 text-sm">
-            @error('photo') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
-        </div>
-        <div>
-            <label for="sort_order" class="block text-sm font-medium mb-1">Urutan Tampil</label>
-            <input type="number" name="sort_order" id="sort_order" value="{{ old('sort_order', 0) }}" min="0" class="w-full border rounded px-3 py-2 text-sm">
-            @error('sort_order') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
-        </div>
-        <div class="flex gap-2 pt-2">
-            <button type="submit" class="bg-gray-900 text-white text-sm px-4 py-2 rounded hover:bg-gray-800">Simpan</button>
-            <a href="{{ route('admin.fasilitas.index') }}" class="text-sm px-4 py-2 text-gray-600 hover:underline">Batal</a>
-        </div>
-    </form>
+<div class="max-w-3xl mx-auto px-4 sm:px-6 py-4">
+
+    {{-- Link Kembali --}}
+    <a href="{{ route('admin.fasilitas.index') }}" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 text-sm font-medium transition-colors mb-4">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        <span>Kembali ke Daftar Fasilitas</span>
+    </a>
+
+    {{-- Judul Halaman --}}
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Tambah Fasilitas</h1>
+        <p class="text-sm text-slate-500 mt-1">Isi formulir di bawah ini untuk menambahkan fasilitas baru.</p>
+    </div>
+
+    {{-- Form Card --}}
+    <div class="bg-white rounded-2xl border border-slate-300 shadow-xs p-5 sm:p-8">
+        <form method="POST" action="{{ route('admin.fasilitas.store') }}" enctype="multipart/form-data" class="space-y-5 sm:space-y-6">
+            @csrf
+
+            {{-- Nama --}}
+            <div>
+                <label for="name" class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Nama Fasilitas <span class="text-rose-500">*</span></label>
+                <input type="text" name="name" id="name" value="{{ old('name') }}" required placeholder="Contoh: Laboratorium Komputer" class="w-full rounded-xl border border-slate-400 bg-white text-slate-900 shadow-2xs focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 text-base sm:text-sm px-3.5 py-2.5 placeholder:text-slate-400">
+                @error('name') <p class="text-rose-600 text-xs mt-1.5">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Deskripsi --}}
+            <div>
+                <label for="description" class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Deskripsi</label>
+                <textarea name="description" id="description" rows="4" placeholder="Jelaskan secara singkat mengenai fasilitas ini..." class="w-full rounded-xl border border-slate-400 bg-white text-slate-900 shadow-2xs focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 text-base sm:text-sm px-3.5 py-2.5 resize-none placeholder:text-slate-400">{{ old('description') }}</textarea>
+                @error('description') <p class="text-rose-600 text-xs mt-1.5">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Upload Foto --}}
+            <div>
+                <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Foto Fasilitas</label>
+                <div class="border-2 border-dashed border-slate-400 hover:border-slate-600 bg-slate-50/50 hover:bg-slate-50 rounded-2xl p-4 sm:p-6 transition-all text-center relative">
+                    <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="previewImage(event)">
+
+                    <div id="upload-placeholder" class="space-y-2 cursor-pointer" onclick="document.getElementById('photo').click()">
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-100 border border-slate-300 flex items-center justify-center mx-auto text-slate-500">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </div>
+                        <p class="text-xs sm:text-sm font-medium text-slate-700"><span class="text-blue-600 font-semibold underline hover:text-blue-700">Unggah berkas</span> atau tarik file</p>
+                        <p class="text-[11px] sm:text-xs text-slate-500">PNG, JPG, WEBP maks. 2MB</p>
+                    </div>
+
+                    <div id="image-preview-container" class="hidden space-y-3">
+                        <img id="image-preview" src="#" alt="Preview Foto" class="max-h-40 sm:max-h-52 rounded-xl mx-auto shadow-sm border border-slate-300 object-cover">
+                        <button type="button" onclick="resetImagePreview()" class="text-xs font-medium text-rose-600 hover:underline">Hapus / Batal Pilih</button>
+                    </div>
+                </div>
+                @error('photo') <p class="text-rose-600 text-xs mt-1.5">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Urutan Tampil --}}
+            <div>
+                <label for="sort_order" class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Urutan Tampil</label>
+                <input type="number" name="sort_order" id="sort_order" value="{{ old('sort_order', 0) }}" min="0" class="w-full sm:w-36 rounded-xl border border-slate-400 bg-white text-slate-900 shadow-2xs focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 text-base sm:text-sm px-3.5 py-2.5">
+                <p class="text-[11px] sm:text-xs text-slate-500 mt-1">Angka lebih kecil akan berada di posisi awal.</p>
+                @error('sort_order') <p class="text-rose-600 text-xs mt-1.5">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Buttons (Tombol Simpan Biru) --}}
+            <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 sm:gap-3 pt-4">
+                <a href="{{ route('admin.fasilitas.index') }}" class="w-full sm:w-auto text-center px-5 py-2.5 border border-slate-400 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors focus:outline-none">Batal</a>
+                <button type="submit" class="w-full sm:w-auto text-center px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-sm font-semibold shadow-xs transition-colors focus:outline-none">Simpan Fasilitas</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function previewImage(event) {
+        const input = event.target;
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('image-preview').src = e.target.result;
+                document.getElementById('upload-placeholder').classList.add('hidden');
+                document.getElementById('image-preview-container').classList.remove('hidden');
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function resetImagePreview() {
+        document.getElementById('photo').value = '';
+        document.getElementById('upload-placeholder').classList.remove('hidden');
+        document.getElementById('image-preview-container').classList.add('hidden');
+    }
+</script>
 @endsection

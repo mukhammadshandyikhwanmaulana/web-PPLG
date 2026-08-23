@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Facility;
+use App\Models\Media;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -26,7 +27,7 @@ class FacilityManagementTest extends TestCase
         $this->admin->assignRole('admin');
     }
 
-    // ACCESS
+    // ACCESS & AUTHORIZATION
 
     public function test_guest_cannot_access_facility_management(): void
     {
@@ -44,6 +45,21 @@ class FacilityManagementTest extends TestCase
     public function test_admin_can_view_facility_list(): void
     {
         $this->actingAs($this->admin)->get(route('admin.fasilitas.index'))->assertOk();
+    }
+
+    // SEARCH & FILTERING
+
+    public function test_admin_can_filter_facilities_by_search_keyword(): void
+    {
+        Facility::factory()->create(['name' => 'Laboratorium Komputer']);
+        Facility::factory()->create(['name' => 'Lapangan Basket']);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('admin.fasilitas.index', ['search' => 'Komputer']));
+
+        $response->assertOk();
+        $response->assertSee('Laboratorium Komputer');
+        $response->assertDontSee('Lapangan Basket');
     }
 
     // CREATE
@@ -72,15 +88,6 @@ class FacilityManagementTest extends TestCase
 
         $response->assertRedirect(route('admin.fasilitas.index'));
         $this->assertDatabaseHas('facilities', ['name' => 'Lab Jaringan']);
-    }
-
-    public function test_name_is_required(): void
-    {
-        $response = $this->actingAs($this->admin)->post(route('admin.fasilitas.store'), [
-            'description' => 'Tanpa nama',
-        ]);
-
-        $response->assertSessionHasErrors('name');
     }
 
     public function test_created_by_cannot_be_manipulated_via_request(): void
@@ -136,6 +143,15 @@ class FacilityManagementTest extends TestCase
 
     // VALIDATION
 
+    public function test_name_is_required(): void
+    {
+        $response = $this->actingAs($this->admin)->post(route('admin.fasilitas.store'), [
+            'description' => 'Tanpa nama',
+        ]);
+
+        $response->assertSessionHasErrors('name');
+    }
+
     public function test_invalid_image_type_is_rejected(): void
     {
         $response = $this->actingAs($this->admin)->post(route('admin.fasilitas.store'), [
@@ -166,7 +182,7 @@ class FacilityManagementTest extends TestCase
         $response->assertSessionHasErrors('sort_order');
     }
 
-    // MEDIA
+    // MEDIA & STORAGE CLEANUP
 
     public function test_photo_upload_creates_media_and_links_to_facility(): void
     {
@@ -183,24 +199,44 @@ class FacilityManagementTest extends TestCase
         Storage::disk('public')->assertExists($facility->photo->file_path);
     }
 
-    public function test_photo_replacement_does_not_break_foreign_key(): void
+    public function test_photo_replacement_deletes_old_media_and_file(): void
     {
         Storage::fake('public');
 
-        $facility = Facility::factory()->create();
-        $oldMediaId = null;
+        // Buat media awal
+        $oldFile = UploadedFile::fake()->image('lama.jpg');
+        $oldPath = $oldFile->store('facilities', 'public');
+        $oldMedia = Media::create([
+            'file_name' => basename($oldPath),
+            'file_path' => $oldPath,
+            'mime_type' => 'image/jpeg',
+            'size' => 1024,
+            'uploaded_by' => $this->admin->id,
+        ]);
 
+        $facility = Facility::factory()->create([
+            'photo_media_id' => $oldMedia->id,
+        ]);
+
+        // Upload foto pengganti saat update
         $this->actingAs($this->admin)->put(route('admin.fasilitas.update', $facility), [
             'name' => $facility->name,
             'photo' => UploadedFile::fake()->image('baru.jpg'),
         ]);
 
         $facility->refresh();
+
+        // Pastikan media baru berhasil dikaitkan
         $this->assertNotNull($facility->photo_media_id);
+        $this->assertNotEquals($oldMedia->id, $facility->photo_media_id);
         Storage::disk('public')->assertExists($facility->photo->file_path);
+
+        // Pastikan file dan record database media lama telah terhapus
+        Storage::disk('public')->assertMissing($oldPath);
+        $this->assertDatabaseMissing('media', ['id' => $oldMedia->id]);
     }
 
-    // PERFORMANCE
+    // ORDERING & DETERMINISM
 
     public function test_facility_index_ordering_is_deterministic(): void
     {

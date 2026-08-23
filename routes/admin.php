@@ -37,7 +37,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Manajemen Akun Guru
         Route::resource('guru', GuruController::class)->except(['show']);
 
-        // Kelola Konten Profil (singleton — hanya edit/update)
+        // Kelola Konten Profil (Singleton: Edit & Update)
         Route::get('profil', [ProfileContentController::class, 'edit'])->name('profil.edit');
         Route::put('profil', [ProfileContentController::class, 'update'])->name('profil.update');
 

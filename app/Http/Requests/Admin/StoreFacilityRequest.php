@@ -8,7 +8,6 @@ class StoreFacilityRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Defense-in-depth — middleware route:admin sudah menjadi lapisan utama.
         return $this->user()?->hasRole('admin') ?? false;
     }
 
@@ -19,6 +18,16 @@ class StoreFacilityRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+        ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'name' => 'nama fasilitas',
+            'description' => 'deskripsi',
+            'photo' => 'foto fasilitas',
+            'sort_order' => 'urutan tampil',
         ];
     }
 }

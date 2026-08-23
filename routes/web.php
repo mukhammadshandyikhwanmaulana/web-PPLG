@@ -1,41 +1,11 @@
 <?php
 
-use App\Http\Controllers\Admin\AchievementController;
-use App\Http\Controllers\Admin\ActivityController;
-use App\Http\Controllers\Admin\ProfileContentController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-// Route Admin Terproteksi Autentikasi
-Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
-    
-    // Dashboard (Jika sudah ada controller dashboard)
-    Route::get('/dashboard', function () {
-        return view('admin.dashboard');
-    })->name('dashboard');
-
-    // Manajemen Profil
-    Route::get('/profil', [ProfileContentController::class, 'edit'])->name('profil.edit');
-    Route::put('/profil', [ProfileContentController::class, 'update'])->name('profil.update');
-
-    // Manajemen Prestasi
-    Route::resource('prestasi', AchievementController::class)->parameters([
-        'prestasi' => 'achievement',
-    ]);
-
-    // Manajemen Kegiatan (Sangat Penting: mapping 'kegiatan' => 'activity')
-    Route::resource('kegiatan', ActivityController::class)->parameters([
-        'kegiatan' => 'activity',
-    ]);
-
-    // Logout
-    Route::post('/logout', function () {
-        auth()->logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
-        return redirect('/');
-    })->name('logout');
-});
+// Jika routes/admin.php tidak didaftarkan otomatis di bootstrap/app.php (Laravel 11) 
+// atau RouteServiceProvider (Laravel 10 Kebawah), Anda bisa memuatnya di sini:
+require __DIR__.'/admin.php';

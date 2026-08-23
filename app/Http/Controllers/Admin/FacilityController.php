@@ -9,6 +9,8 @@ use App\Models\Facility;
 use App\Models\Media;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class FacilityController extends Controller
@@ -21,10 +23,10 @@ class FacilityController extends Controller
             })
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
-        return view('admin.fasilitas.index', ['facilities' => $facilities]);
+        return view('admin.fasilitas.index', compact('facilities'));
     }
 
     public function create(): View
@@ -35,15 +37,18 @@ class FacilityController extends Controller
     public function store(StoreFacilityRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $mediaId = $this->storePhotoIfPresent($request);
 
-        Facility::create([
-            'name' => $data['name'],
-            'description' => $data['description'] ?? null,
-            'photo_media_id' => $mediaId,
-            'sort_order' => $data['sort_order'] ?? 0,
-            'created_by' => auth()->id(),
-        ]);
+        DB::transaction(function () use ($request, $data) {
+            $mediaId = $this->storePhotoIfPresent($request);
+
+            Facility::create([
+                'name' => $data['name'],
+                'description' => $data['description'] ?? null,
+                'photo_media_id' => $mediaId,
+                'sort_order' => $data['sort_order'] ?? 0,
+                'created_by' => auth()->id(),
+            ]);
+        });
 
         return redirect()->route('admin.fasilitas.index')->with('success', 'Fasilitas berhasil ditambahkan.');
     }
@@ -52,26 +57,34 @@ class FacilityController extends Controller
     {
         $facility->loadMissing('photo');
 
-        return view('admin.fasilitas.edit', ['facility' => $facility]);
+        return view('admin.fasilitas.edit', compact('facility'));
     }
 
     public function update(UpdateFacilityRequest $request, Facility $facility): RedirectResponse
     {
         $data = $request->validated();
-        $mediaId = $this->storePhotoIfPresent($request);
 
-        $updateData = [
-            'name' => $data['name'],
-            'description' => $data['description'] ?? null,
-            'sort_order' => $data['sort_order'] ?? $facility->sort_order,
-            'updated_by' => auth()->id(),
-        ];
+        DB::transaction(function () use ($request, $facility, $data) {
+            $mediaId = $this->storePhotoIfPresent($request);
 
-        if ($mediaId !== null) {
-            $updateData['photo_media_id'] = $mediaId;
-        }
+            $updateData = [
+                'name' => $data['name'],
+                'description' => $data['description'] ?? null,
+                'sort_order' => $data['sort_order'] ?? $facility->sort_order,
+                'updated_by' => auth()->id(),
+            ];
 
-        $facility->update($updateData);
+            if ($mediaId !== null) {
+                // Hapus media & berkas fisik lama
+                if ($facility->photo) {
+                    Storage::disk('public')->delete($facility->photo->file_path);
+                    $facility->photo()->delete();
+                }
+                $updateData['photo_media_id'] = $mediaId;
+            }
+
+            $facility->update($updateData);
+        });
 
         return redirect()->route('admin.fasilitas.index')->with('success', 'Fasilitas berhasil diperbarui.');
     }
@@ -85,7 +98,7 @@ class FacilityController extends Controller
 
     protected function storePhotoIfPresent(StoreFacilityRequest|UpdateFacilityRequest $request): ?int
     {
-        if (! $request->hasFile('photo')) {
+        if (!$request->hasFile('photo')) {
             return null;
         }
 

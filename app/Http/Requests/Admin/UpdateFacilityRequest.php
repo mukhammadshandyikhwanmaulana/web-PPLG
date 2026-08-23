@@ -20,4 +20,14 @@ class UpdateFacilityRequest extends FormRequest
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ];
     }
+
+    public function attributes(): array
+    {
+        return [
+            'name' => 'nama fasilitas',
+            'description' => 'deskripsi',
+            'photo' => 'foto fasilitas',
+            'sort_order' => 'urutan tampil',
+        ];
+    }
 }
