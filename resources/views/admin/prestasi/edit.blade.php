@@ -38,8 +38,8 @@
 
             {{-- Contributor Name --}}
             <div>
-                <label for="contributor_name" class="block text-sm font-semibold text-gray-700 mb-1.5">Nama Kontributor/Siswa <span class="text-red-500">*</span></label>
-                <input type="text" name="contributor_name" id="contributor_name" value="{{ old('contributor_name', $achievement->contributor_name) }}" required class="w-full text-sm border border-gray-300 rounded-lg px-3.5 py-2.5 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition @error('contributor_name') border-red-500 @enderror">
+                <label for="contributor_name" class="block text-sm font-semibold text-gray-700 mb-1.5">Nama Kontributor/Siswa</label>
+                <input type="text" name="contributor_name" id="contributor_name" value="{{ old('contributor_name', $achievement->contributor_name) }}" class="w-full text-sm border border-gray-300 rounded-lg px-3.5 py-2.5 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition @error('contributor_name') border-red-500 @enderror">
                 @error('contributor_name')
                     <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
                 @enderror
@@ -52,11 +52,8 @@
                     <select name="level" id="level" class="w-full text-sm border border-gray-300 rounded-lg px-3.5 py-2.5 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition bg-white @error('level') border-red-500 @enderror" required>
                         <option value="">-- Pilih Level --</option>
                         @foreach(\App\Enums\AchievementLevel::cases() as $levelEnum)
-                            @php
-                                $currentLevel = is_object($achievement->level) ? $achievement->level->value : $achievement->level;
-                            @endphp
-                            <option value="{{ $levelEnum->value }}" {{ old('level', $currentLevel) == $levelEnum->value ? 'selected' : '' }}>
-                                {{ $levelEnum->name ?? $levelEnum->value }}
+                            <option value="{{ $levelEnum->value }}" {{ old('level', $achievement->level?->value) == $levelEnum->value ? 'selected' : '' }}>
+                                {{ $levelEnum->label() }}
                             </option>
                         @endforeach
                     </select>
@@ -68,7 +65,7 @@
                 {{-- Achievement Date --}}
                 <div>
                     <label for="achievement_date" class="block text-sm font-semibold text-gray-700 mb-1.5">Tanggal Prestasi <span class="text-red-500">*</span></label>
-                    <input type="date" name="achievement_date" id="achievement_date" value="{{ old('achievement_date', is_object($achievement->achievement_date) ? $achievement->achievement_date->format('Y-m-d') : $achievement->achievement_date) }}" required class="w-full text-sm border border-gray-300 rounded-lg px-3.5 py-2.5 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition bg-white @error('achievement_date') border-red-500 @enderror">
+                    <input type="date" name="achievement_date" id="achievement_date" value="{{ old('achievement_date', $achievement->achievement_date?->format('Y-m-d')) }}" required class="w-full text-sm border border-gray-300 rounded-lg px-3.5 py-2.5 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition bg-white @error('achievement_date') border-red-500 @enderror">
                     @error('achievement_date')
                         <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
                     @enderror
@@ -93,7 +90,8 @@
                     <div class="mb-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
                         <p class="text-xs text-gray-500 mb-2 font-medium">Dokumen Saat Ini:</p>
                         @php
-                            $extension = strtolower(pathinfo($achievement->document, PATHINFO_EXTENSION));
+                            $filePath = $achievement->document->file_path;
+                            $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
                             $isPdf = $extension === 'pdf';
                         @endphp
 
@@ -102,13 +100,13 @@
                                 <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                                 </svg>
-                                <a href="{{ Storage::url($achievement->document) }}" target="_blank" class="text-indigo-600 hover:underline font-medium break-all">
-                                    Lihat Berkas PDF ({{ basename($achievement->document) }})
+                                <a href="{{ Storage::url($filePath) }}" target="_blank" class="text-indigo-600 hover:underline font-medium break-all">
+                                    Lihat Berkas PDF ({{ $achievement->document->file_name ?? basename($filePath) }})
                                 </a>
                             </div>
                         @else
                             <div>
-                                <img src="{{ Storage::url($achievement->document) }}" alt="Preview" class="w-32 h-24 object-cover rounded-lg border border-gray-200 shadow-sm">
+                                <img src="{{ Storage::url($filePath) }}" alt="Preview" class="w-32 h-24 object-cover rounded-lg border border-gray-200 shadow-sm">
                             </div>
                         @endif
                     </div>
@@ -124,8 +122,11 @@
             <div>
                 <label for="status" class="block text-sm font-semibold text-gray-700 mb-1.5">Status Publikasi <span class="text-red-500">*</span></label>
                 <select name="status" id="status" class="w-full text-sm border border-gray-300 rounded-lg px-3.5 py-2.5 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition bg-white @error('status') border-red-500 @enderror" required>
-                    <option value="draft" {{ old('status', $achievement->status) == 'draft' ? 'selected' : '' }}>Draft</option>
-                    <option value="published" {{ old('status', $achievement->status) == 'published' ? 'selected' : '' }}>Published</option>
+                    @foreach(\App\Enums\PublishStatus::cases() as $statusEnum)
+                        <option value="{{ $statusEnum->value }}" {{ old('status', $achievement->status?->value) == $statusEnum->value ? 'selected' : '' }}>
+                            {{ ucfirst($statusEnum->value) }}
+                        </option>
+                    @endforeach
                 </select>
                 @error('status')
                     <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>

@@ -37,8 +37,8 @@
 
             {{-- Contributor Name --}}
             <div>
-                <label for="contributor_name" class="block text-sm font-semibold text-gray-700 mb-1.5">Nama Kontributor/Siswa <span class="text-red-500">*</span></label>
-                <input type="text" name="contributor_name" id="contributor_name" value="{{ old('contributor_name') }}" required placeholder="Nama siswa/tim..." class="w-full text-sm border border-gray-300 rounded-lg px-3.5 py-2.5 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition @error('contributor_name') border-red-500 @enderror">
+                <label for="contributor_name" class="block text-sm font-semibold text-gray-700 mb-1.5">Nama Kontributor/Siswa</label>
+                <input type="text" name="contributor_name" id="contributor_name" value="{{ old('contributor_name') }}" placeholder="Nama siswa/tim..." class="w-full text-sm border border-gray-300 rounded-lg px-3.5 py-2.5 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition @error('contributor_name') border-red-500 @enderror">
                 @error('contributor_name')
                     <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
                 @enderror
@@ -52,7 +52,7 @@
                         <option value="">-- Pilih Level --</option>
                         @foreach(\App\Enums\AchievementLevel::cases() as $levelEnum)
                             <option value="{{ $levelEnum->value }}" {{ old('level') == $levelEnum->value ? 'selected' : '' }}>
-                                {{ $levelEnum->name ?? $levelEnum->value }}
+                                {{ $levelEnum->label() }}
                             </option>
                         @endforeach
                     </select>
@@ -80,11 +80,11 @@
                 @enderror
             </div>
 
-            {{-- Document Input --}}
+            {{-- Document Input (Opsional) --}}
             <div>
-                <label for="document" class="block text-sm font-semibold text-gray-700 mb-1">Dokumen / Bukti <span class="text-red-500">*</span></label>
+                <label for="document" class="block text-sm font-semibold text-gray-700 mb-1">Dokumen / Bukti</label>
                 <p class="text-xs text-gray-500 mb-2">(Format JPEG, PNG, WebP, PDF — Maksimal 5MB)</p>
-                <input type="file" name="document" id="document" accept="image/jpeg,image/png,image/webp,application/pdf" required class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-gray-300 rounded-lg cursor-pointer bg-gray-50/50 focus:outline-none @error('document') border-red-500 @enderror">
+                <input type="file" name="document" id="document" accept="image/jpeg,image/png,image/webp,application/pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-gray-300 rounded-lg cursor-pointer bg-gray-50/50 focus:outline-none @error('document') border-red-500 @enderror">
                 @error('document')
                     <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
                 @enderror
@@ -94,8 +94,11 @@
             <div>
                 <label for="status" class="block text-sm font-semibold text-gray-700 mb-1.5">Status Publikasi <span class="text-red-500">*</span></label>
                 <select name="status" id="status" class="w-full text-sm border border-gray-300 rounded-lg px-3.5 py-2.5 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition bg-white @error('status') border-red-500 @enderror" required>
-                    <option value="draft" {{ old('status', 'draft') == 'draft' ? 'selected' : '' }}>Draft</option>
-                    <option value="published" {{ old('status') == 'published' ? 'selected' : '' }}>Published</option>
+                    @foreach(\App\Enums\PublishStatus::cases() as $statusEnum)
+                        <option value="{{ $statusEnum->value }}" {{ old('status', 'draft') == $statusEnum->value ? 'selected' : '' }}>
+                            {{ ucfirst($statusEnum->value) }}
+                        </option>
+                    @endforeach
                 </select>
                 @error('status')
                     <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>

@@ -21,20 +21,28 @@ class RoleAndUserSeeder extends Seeder
         Role::firstOrCreate(['name' => UserRole::Guru->value, 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => UserRole::Admin->value, 'guard_name' => 'web']);
 
-        $guru = User::factory()->create([
-            'name' => 'Dev Guru',
-            'email' => 'guru@dev.local',
-            'password' => 'dev-password-guru',
-            'is_active' => true,
-        ]);
+        // Akun Guru
+        $guru = User::updateOrCreate(
+            ['email' => 'guru@dev.local'],
+            [
+                'name' => 'Guru PPLG',
+                'password' => bcrypt('dev-password-guru'),
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
         $guru->assignRole(UserRole::Guru->value);
 
-        $admin = User::factory()->create([
-            'name' => 'Dev Admin',
-            'email' => 'admin@dev.local',
-            'password' => 'dev-password-admin',
-            'is_active' => true,
-        ]);
+        // Akun Admin
+        $admin = User::updateOrCreate(
+            ['email' => 'admin@dev.local'],
+            [
+                'name' => 'Administrator',
+                'password' => bcrypt('dev-password-admin'),
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
         $admin->assignRole(UserRole::Admin->value);
     }
 }

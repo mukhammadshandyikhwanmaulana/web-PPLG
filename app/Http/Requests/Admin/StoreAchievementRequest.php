@@ -20,10 +20,10 @@ class StoreAchievementRequest extends FormRequest
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'achievement_date' => ['required', 'date'],
-            'level' => ['required', Rule::in(array_column(AchievementLevel::cases(), 'value'))],
+            'level' => ['required', Rule::enum(AchievementLevel::class)],
             'contributor_name' => ['nullable', 'string', 'max:255'],
             'document' => ['nullable', 'file', 'mimes:jpeg,png,webp,pdf', 'max:5120'],
-            'status' => ['required', Rule::in(array_column(PublishStatus::cases(), 'value'))],
+            'status' => ['required', Rule::enum(PublishStatus::class)],
         ];
     }
 }

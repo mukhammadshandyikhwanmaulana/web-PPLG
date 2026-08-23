@@ -23,7 +23,6 @@ class AchievementController extends Controller
     {
         $user = auth()->user();
 
-        // Tolak akses jika user tidak login atau memiliki role guru
         if (! $user || $user->hasRole('guru')) {
             abort(403, 'THIS ACTION IS UNAUTHORIZED');
         }
@@ -68,13 +67,8 @@ class AchievementController extends Controller
         $data = $request->validated();
         $mediaId = $this->storeDocumentIfPresent($request);
 
-        $status = $data['status'] instanceof PublishStatus 
-            ? $data['status'] 
-            : PublishStatus::from($data['status']);
-
-        $level = $data['level'] instanceof AchievementLevel 
-            ? $data['level'] 
-            : AchievementLevel::from($data['level']);
+        $status = PublishStatus::from($data['status']);
+        $level = AchievementLevel::from($data['level']);
 
         Achievement::create([
             'title' => $data['title'],
@@ -108,21 +102,16 @@ class AchievementController extends Controller
         $data = $request->validated();
         $mediaId = $this->storeDocumentIfPresent($request);
 
-        $status = $data['status'] instanceof PublishStatus 
-            ? $data['status'] 
-            : PublishStatus::from($data['status']);
-
-        $level = $data['level'] instanceof AchievementLevel 
-            ? $data['level'] 
-            : AchievementLevel::from($data['level']);
+        $status = PublishStatus::from($data['status']);
+        $level = AchievementLevel::from($data['level']);
 
         $updateData = [
             'title' => $data['title'],
             'slug' => $this->generateUniqueSlug($data['title'], $achievement->id, $achievement->slug),
-            'achievement_date' => array_key_exists('achievement_date', $data) ? $data['achievement_date'] : $achievement->achievement_date,
+            'achievement_date' => $data['achievement_date'],
             'level' => $level,
-            'contributor_name' => array_key_exists('contributor_name', $data) ? $data['contributor_name'] : $achievement->contributor_name,
-            'description' => array_key_exists('description', $data) ? $data['description'] : $achievement->description,
+            'contributor_name' => $data['contributor_name'] ?? null,
+            'description' => $data['description'] ?? null,
             'status' => $status,
             'updated_by' => auth()->id(),
         ];
