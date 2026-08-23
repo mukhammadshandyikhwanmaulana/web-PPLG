@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('position')->nullable();
             $table->string('expertise')->nullable();
-            $table->foreignId('photo_media_id')->nullable()->constrained('media')->restrictOnDelete();
+            $table->foreignId('photo_media_id')->nullable()->constrained('media')->nullOnDelete();
             $table->boolean('is_active')->default(true);
             $table->unsignedInteger('sort_order')->default(0);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();

@@ -9,19 +9,42 @@ use App\Models\Media;
 use App\Models\StaffMember;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class GuruController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $search = $request->input('search');
+        $status = $request->input('status');
+
         $guru = User::role('guru')
             ->with(['roles', 'staffMember.photo'])
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhereHas('staffMember', function ($sq) use ($search) {
+                          $sq->where('position', 'like', "%{$search}%")
+                            ->orWhere('expertise', 'like', "%{$search}%");
+                      });
+                });
+            })
+            ->when($status !== null && $status !== '', function ($query) use ($status) {
+                $query->where('is_active', $status === 'active');
+            })
             ->orderBy('name')
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
-        return view('admin.guru.index', ['guru' => $guru]);
+        return view('admin.guru.index', [
+            'guru' => $guru,
+            'search' => $search,
+            'status' => $status,
+        ]);
     }
 
     public function create(): View
@@ -39,7 +62,7 @@ class GuruController extends Controller
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'password' => $data['password'],
-                'is_active' => $data['is_active'] ?? true,
+                'is_active' => $data['is_active'],
             ]);
 
             $user->assignRole('guru');
@@ -50,7 +73,7 @@ class GuruController extends Controller
                 'position' => $data['position'] ?? null,
                 'expertise' => $data['expertise'] ?? null,
                 'photo_media_id' => $mediaId,
-                'is_active' => $data['staff_is_active'] ?? true,
+                'is_active' => $data['staff_is_active'],
                 'sort_order' => $data['sort_order'] ?? 0,
                 'created_by' => auth()->id(),
             ]);
@@ -62,7 +85,6 @@ class GuruController extends Controller
     public function edit(User $guru): View
     {
         $this->ensureIsGuru($guru);
-
         $guru->loadMissing('staffMember.photo');
 
         return view('admin.guru.edit', ['guru' => $guru]);
@@ -73,13 +95,15 @@ class GuruController extends Controller
         $this->ensureIsGuru($guru);
 
         $data = $request->validated();
-        $mediaId = $this->storePhotoIfPresent($request);
+        $oldMediaToDelete = null;
 
-        DB::transaction(function () use ($data, $mediaId, $guru) {
+        $newMediaId = $this->storePhotoIfPresent($request);
+
+        DB::transaction(function () use ($data, $newMediaId, $guru, &$oldMediaToDelete) {
             $guru->fill([
                 'name' => $data['name'],
                 'email' => $data['email'],
-                'is_active' => $data['is_active'] ?? $guru->is_active,
+                'is_active' => $data['is_active'],
             ]);
 
             if (! empty($data['password'])) {
@@ -94,13 +118,16 @@ class GuruController extends Controller
                 'name' => $data['name'],
                 'position' => $data['position'] ?? null,
                 'expertise' => $data['expertise'] ?? null,
-                'is_active' => $data['staff_is_active'] ?? ($existingProfile->is_active ?? true),
+                'is_active' => $data['staff_is_active'],
                 'sort_order' => $data['sort_order'] ?? ($existingProfile->sort_order ?? 0),
                 'updated_by' => auth()->id(),
             ];
 
-            if ($mediaId !== null) {
-                $profileData['photo_media_id'] = $mediaId;
+            if ($newMediaId !== null) {
+                if ($existingProfile?->photo) {
+                    $oldMediaToDelete = $existingProfile->photo;
+                }
+                $profileData['photo_media_id'] = $newMediaId;
             }
 
             if (! $existingProfile) {
@@ -109,6 +136,12 @@ class GuruController extends Controller
 
             StaffMember::updateOrCreate(['user_id' => $guru->id], $profileData);
         });
+
+        // Hapus foto & media lama jika ada unggahan foto baru
+        if ($oldMediaToDelete) {
+            Storage::disk('public')->delete($oldMediaToDelete->file_path);
+            $oldMediaToDelete->delete();
+        }
 
         return redirect()->route('admin.guru.index')->with('success', 'Akun Guru berhasil diperbarui.');
     }
@@ -129,22 +162,11 @@ class GuruController extends Controller
         return redirect()->route('admin.guru.index')->with('success', 'Akun Guru berhasil dinonaktifkan.');
     }
 
-    /**
-     * Mencegah akun non-Guru (mis. Admin) diakses lewat controller ini —
-     * proteksi langsung terhadap risiko "admin terhapus lewat CRUD guru" (F-005 §8).
-     */
     protected function ensureIsGuru(User $user): void
     {
         abort_unless($user->hasRole('guru'), 404);
     }
 
-    /**
-     * Upload foto (jika ada) dan buat record Media baru.
-     * Dilakukan DI LUAR DB::transaction() karena operasi filesystem
-     * tidak transactional (F-008 Phase A §9/§12). Jika transaction
-     * gagal setelah ini, file/Media jadi orphan sementara — risiko
-     * kecil yang didokumentasikan, tidak di-auto-cleanup pada F-008.
-     */
     protected function storePhotoIfPresent(StoreGuruRequest|UpdateGuruRequest $request): ?int
     {
         if (! $request->hasFile('photo')) {

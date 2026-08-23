@@ -261,7 +261,6 @@ class GuruManagementTest extends TestCase
 
     public function test_editing_legacy_guru_without_staff_member_creates_one(): void
     {
-        // Simulasi Guru lama (dibuat sebelum F-008) — tidak punya StaffMember.
         $guru = User::factory()->create();
         $guru->assignRole('guru');
         $this->assertNull($guru->staffMember);
