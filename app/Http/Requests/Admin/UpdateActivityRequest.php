@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\PublishStatus;
+use App\Models\Activity;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -16,6 +17,12 @@ class UpdateActivityRequest extends FormRequest
 
     public function rules(): array
     {
+        // Deteksi parameter route baik {kegiatan} maupun {activity}
+        $activity = $this->route('activity') ?? $this->route('kegiatan');
+        
+        $activityId = $activity instanceof Activity ? $activity->id : $activity;
+        $morphClass = (new Activity)->getMorphClass();
+
         return [
             'title' => ['required', 'string', 'max:255'],
             'event_date' => ['required', 'date'],
@@ -25,14 +32,30 @@ class UpdateActivityRequest extends FormRequest
             'images' => ['nullable', 'array'],
             'images.*' => ['image', 'mimes:jpeg,png,webp', 'max:2048'],
             'remove_gallery_ids' => ['nullable', 'array'],
-            'remove_gallery_ids.*' => ['integer', 'exists:galleries,id'],
+            
+            // Validasi: pastikan ID galeri terhubung dengan kegiatan ini
+            'remove_gallery_ids.*' => [
+                'integer',
+                Rule::exists('galleries', 'id')->where(function ($query) use ($activityId, $morphClass) {
+                    return $query->where('galleryable_id', $activityId)
+                                 ->where('galleryable_type', $morphClass);
+                }),
+            ],
         ];
     }
 
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $activity = $this->route('activity');
+            $activity = $this->route('activity') ?? $this->route('kegiatan');
+
+            if (! $activity) {
+                return;
+            }
+
+            if (! $activity instanceof Activity) {
+                $activity = Activity::find($activity);
+            }
 
             if (! $activity) {
                 return;
@@ -63,6 +86,7 @@ class UpdateActivityRequest extends FormRequest
             'images.*.image' => 'File yang diunggah harus berupa gambar.',
             'images.*.mimes' => 'Format gambar galeri harus JPEG, PNG, atau WebP.',
             'images.*.max' => 'Ukuran masing-masing gambar galeri tidak boleh melebihi 2 MB.',
+            'remove_gallery_ids.*.exists' => 'Gambar galeri yang dipilih untuk dihapus tidak valid.',
         ];
     }
 }

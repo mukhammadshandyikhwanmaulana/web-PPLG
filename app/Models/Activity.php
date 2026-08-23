@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable(['title', 'slug', 'event_date', 'content', 'cover_media_id', 'status', 'published_at', 'created_by', 'updated_by'])]
 class Activity extends Model
@@ -25,6 +26,12 @@ class Activity extends Model
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Relations
+    |--------------------------------------------------------------------------
+    */
+
     public function cover(): BelongsTo
     {
         return $this->belongsTo(Media::class, 'cover_media_id');
@@ -34,6 +41,40 @@ class Activity extends Model
     {
         return $this->morphMany(Gallery::class, 'galleryable')->orderBy('sort_order');
     }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updater(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Accessors & Helpers
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Mendapatkan URL gambar cover (atau null jika tidak ada)
+     */
+    public function getCoverUrlAttribute(): ?string
+    {
+        if ($this->cover && $this->cover->file_path) {
+            return Storage::url($this->cover->file_path);
+        }
+
+        return null;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Scopes
+    |--------------------------------------------------------------------------
+    */
 
     public function scopePublished(Builder $query): Builder
     {

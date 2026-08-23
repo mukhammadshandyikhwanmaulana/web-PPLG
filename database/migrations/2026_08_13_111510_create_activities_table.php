@@ -22,7 +22,9 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
 
+            // Indeks untuk optimasi query filter & sorting
             $table->index(['status', 'published_at']);
+            $table->index(['status', 'event_date']); // <--- Tambahan untuk optimasi sorting tanggal
         });
     }
 

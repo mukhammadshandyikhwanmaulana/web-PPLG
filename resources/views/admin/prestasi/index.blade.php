@@ -34,17 +34,39 @@
 
     {{-- Form Search & Filter Responsif --}}
     <form method="GET" action="{{ route('admin.prestasi.index') }}" class="mb-4 sm:mb-6 space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
-        <div class="relative flex-1">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                </svg>
+        {{-- Input Search + Tombol Cari & Reset --}}
+        <div class="flex items-center gap-2 flex-1">
+            <div class="relative flex-1">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <input type="text" name="search" value="{{ request('search') }}"
+                       placeholder="Cari judul / kontributor..."
+                       class="pl-9 border border-gray-300 rounded-lg text-xs sm:text-sm px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition-all">
             </div>
-            <input type="text" name="search" value="{{ request('search') }}"
-                   placeholder="Cari judul / kontributor..."
-                   class="pl-9 border border-gray-300 rounded-lg text-xs sm:text-sm px-3 py-2 w-full focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition-all">
+
+            {{-- Tombol CTA Cari --}}
+            <button type="submit" 
+                    class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition shadow-sm flex items-center gap-1 shrink-0">
+                <span>Cari</span>
+            </button>
+
+            {{-- Tombol Reset (Muncul jika ada filter/pencarian aktif) --}}
+            @if(request()->anyFilled(['search', 'level', 'status']))
+                <a href="{{ route('admin.prestasi.index') }}" 
+                   class="bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-600 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition shrink-0 flex items-center gap-1 border border-gray-300"
+                   title="Reset Filter">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    <span class="hidden sm:inline">Reset</span>
+                </a>
+            @endif
         </div>
 
+        {{-- Dropdown Filter Grid --}}
         <div class="grid grid-cols-2 sm:flex sm:items-center gap-2">
             <select name="level" onchange="this.form.submit()"
                     class="border border-gray-300 rounded-lg text-xs sm:text-sm px-2.5 py-2 w-full sm:w-auto focus:ring-2 focus:ring-indigo-500 bg-white cursor-pointer shadow-sm">
@@ -196,7 +218,7 @@
         {{ $achievements->links() }}
     </div>
 
-    {{-- MODAL PREVIEW DOKUMEN (RESPONSIF HP & DESKTOP) --}}
+    {{-- MODAL PREVIEW DOKUMEN --}}
     <div x-show="previewModal" 
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0"
@@ -210,7 +232,6 @@
         <div @click.away="previewModal = false" 
              class="bg-white rounded-xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
             
-            {{-- Modal Header --}}
             <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-gray-50 shrink-0">
                 <div class="min-w-0 pr-2">
                     <h3 class="text-sm sm:text-base font-semibold text-gray-900 truncate" x-text="previewTitle"></h3>
@@ -224,7 +245,6 @@
                 </button>
             </div>
 
-            {{-- Modal Body --}}
             <div class="p-3 sm:p-4 overflow-y-auto flex-1 bg-gray-100 flex justify-center items-center">
                 <template x-if="previewType === 'image'">
                     <img :src="previewUrl" class="max-h-[65vh] w-auto object-contain rounded-lg shadow-sm border border-gray-200">
@@ -236,7 +256,6 @@
                 </template>
             </div>
 
-            {{-- Modal Footer: Tombol Kembali / Tutup --}}
             <div class="px-4 py-3 border-t border-gray-200 bg-white flex items-center justify-between shrink-0">
                 <a :href="previewUrl" target="_blank" class="text-xs text-indigo-600 hover:underline font-medium">
                     Buka di Tab Baru ↗
