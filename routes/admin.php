@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AchievementController;
+use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\AuthenticatedSessionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FacilityController;
@@ -53,6 +54,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Manajemen Karya Siswa
         Route::resource('karya-siswa', StudentWorkController::class)
             ->parameters(['karya-siswa' => 'student_work'])
+            ->except(['show']);
+
+        // Manajemen Kegiatan
+        Route::resource('kegiatan', ActivityController::class)
+            ->parameters(['kegiatan' => 'activity'])
             ->except(['show']);
     });
 

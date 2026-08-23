@@ -24,9 +24,10 @@
                 <a href="{{ route('admin.fasilitas.index') }}" class="block px-3 py-2 rounded hover:bg-gray-800 {{ request()->routeIs('admin.fasilitas.*') ? 'bg-gray-800' : '' }}">Fasilitas</a>
                 <a href="{{ route('admin.prestasi.index') }}" class="block px-3 py-2 rounded hover:bg-gray-800 {{ request()->routeIs('admin.prestasi.*') ? 'bg-gray-800' : '' }}">Prestasi</a>
                 <a href="{{ route('admin.karya-siswa.index') }}" class="block px-3 py-2 rounded hover:bg-gray-800 {{ request()->routeIs('admin.karya-siswa.*') ? 'bg-gray-800' : '' }}">Karya Siswa</a>
-            @foreach (['Kegiatan', 'Unit Usaha', 'Mitra', 'FAQ'] as $label)
-                <span class="block px-3 py-2 rounded text-gray-500 cursor-not-allowed">{{ $label }} <span class="text-xs">(segera)</span></span>
-            @endforeach
+                <a href="{{ route('admin.kegiatan.index') }}" class="block px-3 py-2 rounded hover:bg-gray-800 {{ request()->routeIs('admin.kegiatan.*') ? 'bg-gray-800' : '' }}">Kegiatan</a>
+                @foreach (['Unit Usaha', 'Mitra', 'FAQ'] as $label)
+                    <span class="block px-3 py-2 rounded text-gray-500 cursor-not-allowed">{{ $label }} <span class="text-xs">(segera)</span></span>
+                @endforeach
 
                 <div class="pt-4 pb-1 px-3 text-xs uppercase text-gray-500">System</div>
                 @foreach (['Media', 'Pengaturan', 'Activity Log'] as $label)
