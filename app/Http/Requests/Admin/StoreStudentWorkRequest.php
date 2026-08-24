@@ -15,7 +15,6 @@ class StoreStudentWorkRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        // Memastikan checkbox is_featured selalu bernilai boolean true/false
         $this->merge([
             'is_featured' => $this->boolean('is_featured'),
         ]);

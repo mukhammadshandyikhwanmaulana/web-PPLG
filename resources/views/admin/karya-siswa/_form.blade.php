@@ -21,11 +21,11 @@
         {{-- Nama Kontributor --}}
         <div>
             <label for="contributor_name" class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
-                Nama Kelas / Siswa <span class="text-rose-500">*</span>
+                Nama Kelas / Siswa
             </label>
             <input type="text" id="contributor_name" name="contributor_name" value="{{ old('contributor_name', $sw?->contributor_name) }}"
                    placeholder="Nama kelas/siswa pembuat..."
-                   class="w-full rounded-lg border-gray-300 text-xs sm:text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm transition-all py-2.5 px-3" required>
+                   class="w-full rounded-lg border-gray-300 text-xs sm:text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm transition-all py-2.5 px-3">
             @error('contributor_name')
                 <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
             @enderror
@@ -86,8 +86,8 @@
             </label>
             <select id="status" name="status"
                     class="w-full rounded-lg border-gray-300 text-xs sm:text-sm focus:border-indigo-500 focus:ring-indigo-500 shadow-sm bg-white cursor-pointer py-2.5 px-3" required>
-                <option value="draft" @selected(old('status', is_object($sw?->status) ? $sw->status->value : ($sw?->status ?? 'draft')) === 'draft')>Draft</option>
-                <option value="published" @selected(old('status', is_object($sw?->status) ? $sw->status->value : $sw?->status) === 'published')>Published</option>
+                <option value="draft" @selected(old('status', $sw?->status?->value ?? $sw?->status ?? 'draft') === 'draft')>Draft</option>
+                <option value="published" @selected(old('status', $sw?->status?->value ?? $sw?->status) === 'published')>Published</option>
             </select>
             @error('status')
                 <p class="mt-1 text-xs text-rose-600 font-medium">{{ $message }}</p>
@@ -110,16 +110,23 @@
 
     {{-- Existing Gallery (Khusus Mode Edit) --}}
     @if ($sw && isset($sw->galleries) && $sw->galleries->count() > 0)
-        <div class="border border-gray-200 rounded-xl p-4 bg-gray-50/30">
+        <div class="border border-gray-200 rounded-xl p-4 bg-gray-50/50">
             <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
                 Galeri Foto Saat Ini
             </label>
             <p class="text-xs text-gray-500 mb-3">Centang foto yang ingin dihapus dari galeri:</p>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                 @foreach ($sw->galleries as $gallery)
+                    @php
+                        $filePath = $gallery->media?->file_path;
+                    @endphp
                     <div class="relative border border-gray-200 rounded-lg overflow-hidden bg-white p-2 shadow-sm flex flex-col items-center">
-                        <img src="{{ Storage::url($gallery->image_path ?? $gallery->image) }}" alt="Existing Gallery" class="w-full h-20 object-cover rounded mb-2">
-                        <label class="flex items-center gap-1.5 text-xs text-rose-600 font-medium cursor-pointer select-none">
+                        @if ($filePath)
+                            <img src="{{ Storage::url($filePath) }}" alt="Gallery Image" class="w-full h-20 object-cover rounded mb-2">
+                        @else
+                            <div class="w-full h-20 bg-gray-100 rounded mb-2 flex items-center justify-center text-gray-400 text-xs">No Image</div>
+                        @endif
+                        <label class="flex items-center gap-1.5 text-xs text-rose-600 font-medium cursor-pointer select-none hover:text-rose-700">
                             <input type="checkbox" name="remove_gallery_ids[]" value="{{ $gallery->id }}" class="rounded border-gray-300 text-rose-600 focus:ring-rose-500">
                             <span>Hapus</span>
                         </label>

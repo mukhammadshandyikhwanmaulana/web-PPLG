@@ -3,235 +3,306 @@
 @section('title', 'Karya Siswa')
 
 @section('content')
-<div class="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8 space-y-5">
+<div class="max-w-7xl mx-auto space-y-4 sm:space-y-6 px-4 sm:px-6 lg:px-8 py-4">
 
-    {{-- Header: Judul & Tombol Tambah --}}
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <!-- Header Section -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Karya Siswa</h1>
-            <p class="text-xs sm:text-sm text-gray-500 mt-0.5">Kelola publikasi dan galeri hasil karya siswa.</p>
+            <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">Karya Siswa</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Kelola dan publikasikan seluruh galeri hasil karya siswa.</p>
         </div>
-        <a href="{{ route('admin.karya-siswa.create') }}"
-           class="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium shadow-sm transition-all shrink-0">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            <span>Tambah Karya Siswa</span>
-        </a>
+        <div>
+            <a href="{{ route('admin.karya-siswa.create') }}"
+               class="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-xl shadow-xs transition duration-150 text-sm shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                <span>Tambah Karya Siswa</span>
+            </a>
+        </div>
     </div>
 
-    {{-- Box Form Search & Filter Responsif --}}
-    <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-gray-200 shadow-sm">
-        <form method="GET" action="{{ route('admin.karya-siswa.index') }}" class="flex flex-col md:flex-row gap-2.5">
+    <!-- Filter & Search Section -->
+    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-300">
+        <form method="GET" action="{{ route('admin.karya-siswa.index') }}" class="flex flex-col md:flex-row items-stretch md:items-center gap-3">
             {{-- Input Search --}}
-            <div class="relative flex-1">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="relative w-full md:flex-1">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
                 </div>
                 <input type="text" name="search" value="{{ request('search') }}"
                        placeholder="Cari judul atau kontributor..."
-                       class="pl-9 w-full rounded-lg border-gray-300 text-xs sm:text-sm focus:border-indigo-500 focus:ring-indigo-500 py-2">
+                       class="w-full pl-10 pr-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition leading-normal">
             </div>
 
-            {{-- Dropdown Filters --}}
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:flex gap-2">
-                <select name="status" onchange="this.form.submit()"
-                        class="w-full text-xs sm:text-sm rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 py-2 bg-white cursor-pointer">
+            {{-- Dropdown Status --}}
+            <div class="w-full md:w-44">
+                <select name="status" class="w-full py-2.5 px-3.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition bg-white leading-normal">
                     <option value="">Semua Status</option>
-                    <option value="published" @selected(strtolower(request('status')) === 'published')>Published</option>
-                    <option value="draft" @selected(strtolower(request('status')) === 'draft')>Draft</option>
+                    @foreach (\App\Enums\PublishStatus::cases() as $status)
+                        <option value="{{ $status->value }}" @selected(strtolower(request('status')) === $status->value)>
+                            {{ ucfirst($status->value) }}
+                        </option>
+                    @endforeach
                 </select>
+            </div>
 
-                <select name="pembimbing_id" onchange="this.form.submit()"
-                        class="w-full text-xs sm:text-sm rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 py-2 bg-white cursor-pointer">
+            {{-- Dropdown Pembimbing --}}
+            <div class="w-full md:w-48">
+                <select name="supervisor_id" class="w-full py-2.5 px-3.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition bg-white leading-normal">
                     <option value="">Semua Pembimbing</option>
-                    @foreach ($supervisors ?? $pembimbings ?? [] as $pembimbing)
-                        <option value="{{ $pembimbing->id }}" @selected(request('pembimbing_id') == $pembimbing->id || request('supervisor_id') == $pembimbing->id)>
+                    @foreach ($supervisors ?? [] as $pembimbing)
+                        <option value="{{ $pembimbing->id }}" @selected(request('supervisor_id') == $pembimbing->id || request('pembimbing_id') == $pembimbing->id)>
                             {{ $pembimbing->name }}
                         </option>
                     @endforeach
                 </select>
+            </div>
 
-                <a href="{{ route('admin.karya-siswa.index') }}"
-                   class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors col-span-2 sm:col-span-1">
-                    Reset
-                </a>
+            {{-- Tombol Filter (Cari & Reset) --}}
+            <div class="flex items-center gap-2 w-full md:w-auto shrink-0">
+                <button type="submit" class="flex-1 md:flex-initial inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2.5 rounded-xl shadow-xs transition duration-150 shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Cari
+                </button>
+
+                @if(request('search') || request('status') || request('supervisor_id') || request('pembimbing_id'))
+                    <a href="{{ route('admin.karya-siswa.index') }}" class="inline-flex items-center justify-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-sm font-medium px-4 py-2.5 rounded-xl transition duration-150 shrink-0">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Reset
+                    </a>
+                @endif
             </div>
         </form>
     </div>
 
     @php
-        $items = $studentWorks ?? $karyaSiswas ?? $works ?? [];
+        $items = $studentWorks ?? [];
     @endphp
 
-    {{-- 1. TAMPILAN MOBILE & TABLET KECIL (< md): Grid Card View --}}
-    <div class="grid grid-cols-1 gap-3 md:hidden">
+    <!-- TAMPILAN MOBILE (< md) -->
+    <div class="block md:hidden space-y-3">
         @forelse ($items as $karya)
             @php
                 $statusVal = strtolower(is_object($karya->status ?? null) ? $karya->status->value : ($karya->status ?? 'draft'));
-                $imgCount = $karya->galleries ? $karya->galleries->count() : ($karya->images_count ?? 0);
-                
-                $supervisorId = $karya->supervisor_id ?? $karya->pembimbing_id ?? $karya->supervisor?->id;
-                $supervisorName = $karya->supervisor?->name ?? $karya->supervisor_name ?? $karya->pembimbing?->name;
+                $imgCount = $karya->galleries ? $karya->galleries->count() : 0;
+                $coverPath = $karya->galleries?->first()?->media?->file_path;
+
+                $supervisorId = $karya->supervisor_id ?? $karya->supervisor?->id;
+                $supervisorName = $karya->supervisor?->name;
             @endphp
-            <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-3">
-                <div class="flex items-start justify-between gap-2">
-                    <div>
-                        <h2 class="font-semibold text-gray-900 text-sm leading-snug break-words">
-                            {{ $karya->title }}
-                        </h2>
+            <div class="bg-white rounded-2xl border border-slate-300 p-4 shadow-xs flex flex-col gap-3">
+                <div class="flex items-start gap-3">
+                    @if ($coverPath)
+                        <img src="{{ Storage::url($coverPath) }}" alt="{{ $karya->title }}" class="w-16 h-16 object-cover rounded-xl border border-slate-200 shrink-0">
+                    @else
+                        <div class="w-16 h-16 bg-slate-100 rounded-xl border border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-400 font-medium shrink-0">
+                            No Cover
+                        </div>
+                    @endif
+
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                            @if ($statusVal === 'published')
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    Published
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                    Draft
+                                </span>
+                            @endif
+                            <span class="text-[11px] text-slate-400 font-medium">📷 {{ $imgCount }}/5</span>
+                        </div>
+                        <h2 class="text-sm font-semibold text-slate-900 line-clamp-2 leading-snug">{{ $karya->title }}</h2>
                         @if (!empty($karya->demo_url))
-                            <a href="{{ $karya->demo_url }}" target="_blank" rel="noopener noreferrer" 
+                            <a href="{{ $karya->demo_url }}" target="_blank" rel="noopener noreferrer"
                                class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline mt-0.5 font-medium">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                                 </svg>
-                                <span>Lihat Demo</span>
+                                <span>Demo</span>
                             </a>
                         @endif
                     </div>
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold shrink-0 uppercase tracking-wider
-                        {{ $statusVal === 'published' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200' }}">
-                        {{ $statusVal }}
-                    </span>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2 text-xs text-gray-600 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                <div class="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                     <div>
-                        <span class="block text-gray-400">Kontributor</span>
-                        <span class="font-medium text-gray-800 break-words">{{ $karya->contributor_name ?? '—' }}</span>
+                        <span class="block text-slate-400 text-[11px]">Kontributor</span>
+                        <span class="font-medium text-slate-800 break-words">{{ $karya->contributor_name ?? '—' }}</span>
                     </div>
                     <div>
-                        <span class="block text-gray-400">Pembimbing</span>
+                        <span class="block text-slate-400 text-[11px]">Pembimbing</span>
                         @if ($supervisorName && $supervisorId)
-                            <a href="{{ route('admin.karya-siswa.index', array_merge(request()->query(), ['pembimbing_id' => $supervisorId])) }}" 
+                            <a href="{{ route('admin.karya-siswa.index', array_merge(request()->query(), ['supervisor_id' => $supervisorId])) }}"
                                class="font-medium text-indigo-600 hover:text-indigo-800 hover:underline break-words">
                                 {{ $supervisorName }}
                             </a>
                         @else
-                            <span class="font-medium text-gray-800 break-words">{{ $supervisorName ?? '—' }}</span>
+                            <span class="font-medium text-slate-800 break-words">{{ $supervisorName ?? '—' }}</span>
                         @endif
-                    </div>
-                    <div class="mt-1">
-                        <span class="block text-gray-400">Gambar</span>
-                        <span class="font-medium text-gray-800">📷 {{ $imgCount }}/5</span>
-                    </div>
-                    <div class="mt-1">
-                        <span class="block text-gray-400">Featured</span>
-                        <span class="font-medium text-gray-800">{{ $karya->is_featured ? '⭐ Ya' : '—' }}</span>
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 text-xs font-semibold">
-                    <a href="{{ route('admin.karya-siswa.edit', $karya) }}" class="text-indigo-600 hover:text-indigo-800">Edit</a>
-                    <form method="POST" action="{{ route('admin.karya-siswa.destroy', $karya) }}" class="inline" onsubmit="return confirm('Hapus karya siswa ini?');">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="text-rose-600 hover:text-rose-800">Hapus</button>
-                    </form>
+                <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                    <div>
+                        @if($karya->is_featured)
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                ⭐ Featured
+                            </span>
+                        @endif
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('admin.karya-siswa.edit', $karya) }}"
+                           class="px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-medium rounded-lg transition">
+                            Edit
+                        </a>
+                        <form action="{{ route('admin.karya-siswa.destroy', $karya) }}" method="POST" class="inline"
+                              onsubmit="return confirm('Apakah Anda yakin ingin menghapus karya siswa ini?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-medium rounded-lg transition">
+                                Hapus
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         @empty
-            <div class="bg-white rounded-xl border border-gray-200 p-6 text-center text-gray-400 text-xs">
-                Belum ada data karya siswa.
+            <div class="bg-white rounded-2xl border border-slate-300 p-8 text-center text-slate-500 text-sm shadow-xs">
+                <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                Belum ada data karya siswa yang ditemukan.
             </div>
         @endforelse
     </div>
 
-    {{-- 2. TAMPILAN DESKTOP & TABLET BESAR (>= md): Table View --}}
-    <div class="hidden md:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-sm">
-                <thead>
-                    <tr class="bg-gray-50/75 border-b border-gray-200 text-gray-500 text-xs font-semibold uppercase tracking-wider">
-                        <th class="py-3.5 px-4 min-w-[220px]">Judul</th>
-                        <th class="py-3.5 px-4 min-w-[140px]">Kontributor</th>
-                        <th class="py-3.5 px-4 min-w-[140px]">Pembimbing</th>
-                        <th class="py-3.5 px-4 text-center min-w-[90px]">Gambar</th>
-                        <th class="py-3.5 px-4 text-center min-w-[110px]">Status</th>
-                        <th class="py-3.5 px-4 text-center min-w-[90px]">Featured</th>
-                        <th class="py-3.5 px-4 text-right min-w-[120px]">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100 text-gray-700">
-                    @forelse ($items as $karya)
-                        @php
-                            $statusVal = strtolower(is_object($karya->status ?? null) ? $karya->status->value : ($karya->status ?? 'draft'));
-                            $imgCount = $karya->galleries ? $karya->galleries->count() : ($karya->images_count ?? 0);
+    <!-- TAMPILAN DESKTOP (>= md) -->
+    <div class="hidden md:block bg-white rounded-2xl shadow-xs border border-slate-300 overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                    <th class="py-3.5 px-4 w-20">Cover</th>
+                    <th class="py-3.5 px-4">Judul</th>
+                    <th class="py-3.5 px-4 w-40">Kontributor</th>
+                    <th class="py-3.5 px-4 w-40">Pembimbing</th>
+                    <th class="py-3.5 px-4 w-24 text-center">Gambar</th>
+                    <th class="py-3.5 px-4 w-28 text-center">Status</th>
+                    <th class="py-3.5 px-4 w-28 text-center">Featured</th>
+                    <th class="py-3.5 px-4 w-32 text-right">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-sm">
+                @forelse ($items as $karya)
+                    @php
+                        $statusVal = strtolower(is_object($karya->status ?? null) ? $karya->status->value : ($karya->status ?? 'draft'));
+                        $imgCount = $karya->galleries ? $karya->galleries->count() : 0;
+                        $coverPath = $karya->galleries?->first()?->media?->file_path;
 
-                            $supervisorId = $karya->supervisor_id ?? $karya->pembimbing_id ?? $karya->supervisor?->id;
-                            $supervisorName = $karya->supervisor?->name ?? $karya->supervisor_name ?? $karya->pembimbing?->name;
-                        @endphp
-                        <tr class="hover:bg-gray-50/80 transition-colors">
-                            <td class="py-3.5 px-4 font-medium text-gray-900">
-                                <div>{{ $karya->title }}</div>
-                                @if (!empty($karya->demo_url))
-                                    <a href="{{ $karya->demo_url }}" target="_blank" rel="noopener noreferrer" 
-                                       class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 hover:underline mt-0.5 font-normal">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                                        </svg>
-                                        <span>Lihat Demo</span>
-                                    </a>
-                                @endif
-                            </td>
-                            <td class="py-3.5 px-4 text-gray-600">{{ $karya->contributor_name ?? '—' }}</td>
-                            <td class="py-3.5 px-4 text-gray-600">
-                                @if ($supervisorName && $supervisorId)
-                                    <a href="{{ route('admin.karya-siswa.index', array_merge(request()->query(), ['pembimbing_id' => $supervisorId])) }}" 
-                                       class="text-indigo-600 hover:text-indigo-800 hover:underline font-medium transition-colors">
-                                        {{ $supervisorName }}
-                                    </a>
-                                @else
-                                    <span>{{ $supervisorName ?? '—' }}</span>
-                                @endif
-                            </td>
-                            <td class="py-3.5 px-4 text-center text-gray-600 whitespace-nowrap">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700 font-medium">
-                                    📷 {{ $imgCount }}/5
+                        $supervisorId = $karya->supervisor_id ?? $karya->supervisor?->id;
+                        $supervisorName = $karya->supervisor?->name;
+                    @endphp
+                    <tr class="hover:bg-slate-50/50 transition">
+                        <td class="py-3 px-4">
+                            @if ($coverPath)
+                                <img src="{{ Storage::url($coverPath) }}" alt="{{ $karya->title }}" class="w-14 h-10 object-cover rounded-xl border border-slate-200 shadow-xs">
+                            @else
+                                <div class="w-14 h-10 bg-slate-100 rounded-xl border border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-400 font-medium">
+                                    No Cover
+                                </div>
+                            @endif
+                        </td>
+                        <td class="py-3 px-4 font-medium text-slate-900">
+                            <div>{{ $karya->title }}</div>
+                            @if (!empty($karya->demo_url))
+                                <a href="{{ $karya->demo_url }}" target="_blank" rel="noopener noreferrer"
+                                   class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 hover:underline mt-0.5 font-normal">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                    </svg>
+                                    <span>Lihat Demo</span>
+                                </a>
+                            @endif
+                        </td>
+                        <td class="py-3 px-4 text-slate-600">{{ $karya->contributor_name ?? '—' }}</td>
+                        <td class="py-3 px-4 text-slate-600">
+                            @if ($supervisorName && $supervisorId)
+                                <a href="{{ route('admin.karya-siswa.index', array_merge(request()->query(), ['supervisor_id' => $supervisorId])) }}"
+                                   class="text-indigo-600 hover:text-indigo-800 hover:underline font-medium transition-colors">
+                                    {{ $supervisorName }}
+                                </a>
+                            @else
+                                <span>{{ $supervisorName ?? '—' }}</span>
+                            @endif
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                                📷 {{ $imgCount }}/5
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-center whitespace-nowrap">
+                            @if($statusVal === 'published')
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    Published
                                 </span>
-                            </td>
-                            <td class="py-3.5 px-4 text-center whitespace-nowrap">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider
-                                    {{ $statusVal === 'published' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200' }}">
-                                    {{ $statusVal }}
+                            @else
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                                    Draft
                                 </span>
-                            </td>
-                            <td class="py-3.5 px-4 text-center whitespace-nowrap">
-                                @if($karya->is_featured)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-200 font-medium">⭐ Ya</span>
-                                @else
-                                    <span class="text-gray-400">—</span>
-                                @endif
-                            </td>
-                            <td class="py-3.5 px-4 text-right whitespace-nowrap font-medium space-x-2">
-                                <a href="{{ route('admin.karya-siswa.edit', $karya) }}" class="text-indigo-600 hover:text-indigo-900 transition-colors">Edit</a>
-                                <form method="POST" action="{{ route('admin.karya-siswa.destroy', $karya) }}" class="inline" onsubmit="return confirm('Hapus karya siswa ini?');">
+                            @endif
+                        </td>
+                        <td class="py-3 px-4 text-center whitespace-nowrap">
+                            @if($karya->is_featured)
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">⭐ Ya</span>
+                            @else
+                                <span class="text-slate-400">—</span>
+                            @endif
+                        </td>
+                        <td class="py-3 px-4 text-right whitespace-nowrap">
+                            <div class="flex items-center justify-end gap-3">
+                                <a href="{{ route('admin.karya-siswa.edit', $karya) }}"
+                                   class="text-indigo-600 hover:text-indigo-900 font-medium transition">
+                                    Edit
+                                </a>
+                                <form action="{{ route('admin.karya-siswa.destroy', $karya) }}" method="POST" class="inline"
+                                      onsubmit="return confirm('Apakah Anda yakin ingin menghapus karya siswa ini?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-rose-600 hover:text-rose-900 transition-colors">Hapus</button>
+                                    <button type="submit" class="text-rose-600 hover:text-rose-800 font-medium transition">
+                                        Hapus
+                                    </button>
                                 </form>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="py-8 text-center text-gray-400">Belum ada data karya siswa.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="8" class="py-12 px-4 text-center text-slate-500">
+                            <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                            Belum ada data karya siswa yang ditemukan.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
 
-    {{-- Pagination Preserved --}}
-    <div>
-        @if (is_object($items) && method_exists($items, 'withQueryString'))
-            {{ $items->withQueryString()->links() }}
-        @elseif (is_object($items) && method_exists($items, 'links'))
-            {{ $items->links() }}
+        @if (is_object($items) && method_exists($items, 'hasPages') && $items->hasPages())
+            <div class="px-4 py-3 bg-slate-50 border-t border-slate-200">
+                {{ $items->links() }}
+            </div>
         @endif
     </div>
+
+    @if (is_object($items) && method_exists($items, 'hasPages') && $items->hasPages())
+        <div class="mt-3 block md:hidden">
+            {{ $items->links() }}
+        </div>
+    @endif
 </div>
 @endsection

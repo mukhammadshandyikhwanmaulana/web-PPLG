@@ -16,7 +16,6 @@ class UpdateStudentWorkRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        // Memastikan checkbox is_featured selalu bernilai boolean true/false
         $this->merge([
             'is_featured' => $this->boolean('is_featured'),
         ]);
@@ -42,8 +41,7 @@ class UpdateStudentWorkRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            // Mengakomodasi penamaan parameter route: student_work, studentWork, maupun karya_siswa
-            $studentWork = $this->route('student_work');
+            $studentWork = $this->route('student_work') ?? $this->route('karya_siswa') ?? $this->route('studentWork');
 
             if (! $studentWork) {
                 return;
