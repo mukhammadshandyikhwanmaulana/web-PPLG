@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AuthenticatedSessionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FacilityController;
 use App\Http\Controllers\Admin\GuruController;
+use App\Http\Controllers\Admin\IndustryPartnerController;
 use App\Http\Controllers\Admin\ProfileContentController;
 use App\Http\Controllers\Admin\StudentWorkController;
 use Illuminate\Support\Facades\Route;
@@ -59,6 +60,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Manajemen Kegiatan
         Route::resource('kegiatan', ActivityController::class)
             ->parameters(['kegiatan' => 'activity'])
+            ->except(['show']);
+
+        // Manajemen Mitra Industri
+        Route::resource('mitra', IndustryPartnerController::class)
+            ->parameters(['mitra' => 'industry_partner'])
             ->except(['show']);
     });
 
