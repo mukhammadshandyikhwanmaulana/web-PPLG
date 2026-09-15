@@ -2,17 +2,26 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['label', 'external_url', 'is_active', 'updated_by'])]
 class UnitUsahaLink extends Model
 {
+    use HasFactory;
+
+    protected $fillable = [
+        'label',
+        'external_url',
+        'is_active',
+        'updated_by',
+    ];
+
     protected function casts(): array
     {
         return [
-            'is_active' => 'boolean',
+            'is_active'  => 'boolean',
+            'updated_by' => 'integer',
         ];
     }
 
@@ -21,9 +30,6 @@ class UnitUsahaLink extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    /**
-     * Fallback behavior F-006 §14 — navbar tidak boleh mengarah ke halaman kosong.
-     */
     public function isDisplayable(): bool
     {
         return $this->is_active && ! empty($this->external_url);

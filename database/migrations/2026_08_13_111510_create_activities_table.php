@@ -14,7 +14,10 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->date('event_date');
             $table->text('content')->nullable();
-            $table->foreignId('cover_media_id')->nullable()->constrained('media')->restrictOnDelete();
+            $table->foreignId('cover_media_id')
+                ->nullable()
+                ->constrained('media')
+                ->nullOnDelete();
             $table->string('status')->default('draft');
             $table->timestamp('published_at')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
@@ -22,9 +25,8 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
 
-            // Indeks untuk optimasi query filter & sorting
             $table->index(['status', 'published_at']);
-            $table->index(['status', 'event_date']); // <--- Tambahan untuk optimasi sorting tanggal
+            $table->index(['status', 'event_date']);
         });
     }
 

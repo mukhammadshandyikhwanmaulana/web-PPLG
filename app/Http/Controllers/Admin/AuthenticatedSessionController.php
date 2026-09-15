@@ -7,14 +7,15 @@ use App\Http\Controllers\Concerns\AuthenticatesWithRole;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
     use AuthenticatesWithRole;
 
-    public function create(): string
+    public function create(): View
     {
-        return 'Admin login form placeholder — F-004 foundation only.';
+        return view('admin.auth.login');
     }
 
     public function store(Request $request): RedirectResponse

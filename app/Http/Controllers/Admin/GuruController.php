@@ -18,64 +18,97 @@ class GuruController extends Controller
 {
     public function index(Request $request): View
     {
-        $search = $request->input('search');
+        $search = trim((string) $request->input('search', ''));
         $status = $request->input('status');
 
-        $guru = User::role('guru')
-            ->with(['roles', 'staffMember.photo'])
-            ->when($search, function ($query, $search) {
+        $guru = User::query()
+            ->select('users.*')
+            ->where(function ($q) {
+                if (method_exists(User::class, 'scopeRole')) {
+                    $q->role('guru');
+                } else {
+                    $q->whereHas('roles', fn ($r) => $r->where('name', 'guru'))
+                      ->orWhere('role', 'guru');
+                }
+            })
+            ->leftJoin('staff_members', 'staff_members.user_id', '=', 'users.id')
+            ->with(['staffMember.photo'])
+            ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhereHas('staffMember', function ($sq) use ($search) {
-                          $sq->where('position', 'like', "%{$search}%")
-                            ->orWhere('expertise', 'like', "%{$search}%");
+                    $q->where('users.name', 'like', "%{$search}%")
+                      ->orWhere('users.email', 'like', "%{$search}%")
+                      ->orWhereHas('staffMember', function ($qStaff) use ($search) {
+                          $qStaff->where('position', 'like', "%{$search}%")
+                                 ->orWhere('expertise', 'like', "%{$search}%");
                       });
                 });
             })
             ->when($status !== null && $status !== '', function ($query) use ($status) {
-                $query->where('is_active', $status === 'active');
+                $query->where('users.is_active', $status === 'active');
             })
-            ->orderBy('name')
+            ->orderByRaw("
+                CASE 
+                    WHEN LOWER(COALESCE(staff_members.position, '')) LIKE '%ketua kompetensi keahlian%' 
+                      OR LOWER(COALESCE(staff_members.position, '')) LIKE '%kepala jurusan%' 
+                      OR LOWER(COALESCE(staff_members.position, '')) LIKE '%kaprog%' 
+                      OR LOWER(COALESCE(staff_members.position, '')) LIKE '%kakomli%' 
+                      OR LOWER(COALESCE(staff_members.position, '')) LIKE '%kajur%' 
+                      OR LOWER(COALESCE(staff_members.position, '')) LIKE '%kepala program%' THEN 1
+                    WHEN LOWER(COALESCE(staff_members.position, '')) LIKE '%guru%' THEN 2
+                    ELSE 3
+                END ASC
+            ")
+            ->orderBy('users.name', 'asc')
             ->paginate(15)
             ->withQueryString();
 
-        return view('admin.guru.index', [
-            'guru' => $guru,
-            'search' => $search,
-            'status' => $status,
-        ]);
+        return view('admin.guru.index', compact('guru', 'search', 'status'));
     }
 
     public function create(): View
     {
-        return view('admin.guru.create');
+        $isKajurExist = StaffMember::where(function ($query) {
+            $query->where('position', 'like', '%Ketua Kompetensi Keahlian%')
+                  ->orWhere('position', 'like', '%Kepala Jurusan%');
+        })->exists();
+
+        return view('admin.guru.create', compact('isKajurExist'));
     }
 
     public function store(StoreGuruRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $mediaId = $this->storePhotoIfPresent($request);
 
-        DB::transaction(function () use ($data, $mediaId) {
+        DB::transaction(function () use ($request, $data) {
+            $mediaData = $this->storePhotoIfPresent($request);
+
             $user = User::create([
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'password' => $data['password'],
-                'is_active' => $data['is_active'],
+                'name'      => $data['name'],
+                'email'     => $data['email'],
+                'password'  => bcrypt($data['password']),
+                'avatar'    => $mediaData['path'] ?? null,
+                'is_active' => $data['is_active'] ?? true,
             ]);
 
-            $user->assignRole('guru');
+            if (method_exists($user, 'assignRole')) {
+                $user->assignRole('guru');
+            } else {
+                $user->update(['role' => 'guru']);
+            }
+
+            $positions = $request->input('positions', []);
+            $positionString = !empty($positions) ? implode(', ', $positions) : null;
 
             StaffMember::create([
-                'user_id' => $user->id,
-                'name' => $data['name'],
-                'position' => $data['position'] ?? null,
-                'expertise' => $data['expertise'] ?? null,
-                'photo_media_id' => $mediaId,
-                'is_active' => $data['staff_is_active'],
-                'sort_order' => $data['sort_order'] ?? 0,
-                'created_by' => auth()->id(),
+                'user_id'        => $user->id,
+                'name'           => $data['name'],
+                'position'       => $positionString,
+                'expertise'      => $data['expertise'] ?? null,
+                'photo_media_id' => $mediaData['id'] ?? null,
+                'is_active'      => $data['staff_is_active'] ?? $data['is_active'] ?? true,
+                'sort_order'     => 0,
+                'created_by'     => auth()->id(),
+                'updated_by'     => auth()->id(),
             ]);
         });
 
@@ -87,60 +120,76 @@ class GuruController extends Controller
         $this->ensureIsGuru($guru);
         $guru->loadMissing('staffMember.photo');
 
-        return view('admin.guru.edit', ['guru' => $guru]);
+        $rawPosition = $guru->staffMember?->position ?? '';
+        $selectedPositions = array_filter(array_map('trim', explode(',', $rawPosition)));
+
+        $isKajurExist = StaffMember::where(function ($query) {
+            $query->where('position', 'like', '%Ketua Kompetensi Keahlian%')
+                  ->orWhere('position', 'like', '%Kepala Jurusan%');
+        })
+        ->where('user_id', '!=', $guru->id)
+        ->exists();
+
+        return view('admin.guru.edit', compact('guru', 'selectedPositions', 'isKajurExist'));
     }
 
     public function update(UpdateGuruRequest $request, User $guru): RedirectResponse
     {
         $this->ensureIsGuru($guru);
-
         $data = $request->validated();
         $oldMediaToDelete = null;
 
-        $newMediaId = $this->storePhotoIfPresent($request);
+        DB::transaction(function () use ($request, $data, $guru, &$oldMediaToDelete) {
+            $newMediaData = $this->storePhotoIfPresent($request);
+            
+            $guruData = [
+                'name'      => $data['name'],
+                'email'     => $data['email'],
+                'is_active' => $data['is_active'] ?? true,
+            ];
 
-        DB::transaction(function () use ($data, $newMediaId, $guru, &$oldMediaToDelete) {
-            $guru->fill([
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'is_active' => $data['is_active'],
-            ]);
-
-            if (! empty($data['password'])) {
-                $guru->password = $data['password'];
+            if ($newMediaData !== null) {
+                $guruData['avatar'] = $newMediaData['path'];
             }
 
-            $guru->save();
+            if (!empty($data['password'])) {
+                $guruData['password'] = bcrypt($data['password']);
+            }
+
+            $guru->update($guruData);
 
             $existingProfile = $guru->staffMember;
+            $positions       = $request->input('positions', []);
+            $positionString  = !empty($positions) ? implode(', ', $positions) : null;
 
             $profileData = [
-                'name' => $data['name'],
-                'position' => $data['position'] ?? null,
-                'expertise' => $data['expertise'] ?? null,
-                'is_active' => $data['staff_is_active'],
-                'sort_order' => $data['sort_order'] ?? ($existingProfile->sort_order ?? 0),
+                'name'       => $data['name'],
+                'position'   => $positionString,
+                'expertise'  => $data['expertise'] ?? null,
+                'is_active'  => $data['staff_is_active'] ?? $data['is_active'] ?? true,
+                'sort_order' => $existingProfile->sort_order ?? 0,
                 'updated_by' => auth()->id(),
             ];
 
-            if ($newMediaId !== null) {
-                if ($existingProfile?->photo) {
-                    $oldMediaToDelete = $existingProfile->photo;
+            if ($newMediaData !== null) {
+                if ($existingProfile?->photo_media_id) {
+                    $oldMediaToDelete = Media::find($existingProfile->photo_media_id);
                 }
-                $profileData['photo_media_id'] = $newMediaId;
-            }
-
-            if (! $existingProfile) {
-                $profileData['created_by'] = auth()->id();
+                $profileData['photo_media_id'] = $newMediaData['id'];
             }
 
             StaffMember::updateOrCreate(['user_id' => $guru->id], $profileData);
         });
 
-        // Hapus foto & media lama jika ada unggahan foto baru
         if ($oldMediaToDelete) {
-            Storage::disk('public')->delete($oldMediaToDelete->file_path);
-            $oldMediaToDelete->delete();
+            $isUsedElsewhere = StaffMember::where('photo_media_id', $oldMediaToDelete->id)
+                ->where('user_id', '!=', $guru->id)
+                ->exists();
+
+            if (! $isUsedElsewhere) {
+                Storage::disk($oldMediaToDelete->disk ?? 'public')->delete($oldMediaToDelete->path);
+                $oldMediaToDelete->forceDelete();
+            }
         }
 
         return redirect()->route('admin.guru.index')->with('success', 'Akun Guru berhasil diperbarui.');
@@ -150,24 +199,34 @@ class GuruController extends Controller
     {
         $this->ensureIsGuru($guru);
 
-        DB::transaction(function () use ($guru) {
-            $guru->update(['is_active' => false]);
+        $newStatus = ! $guru->is_active;
 
-            $guru->staffMember?->update([
-                'is_active' => false,
-                'updated_by' => auth()->id(),
-            ]);
+        DB::transaction(function () use ($guru, $newStatus) {
+            $guru->update(['is_active' => $newStatus]);
+
+            if ($guru->staffMember) {
+                $guru->staffMember->update([
+                    'is_active'  => $newStatus,
+                    'updated_by' => auth()->id(),
+                ]);
+            }
         });
 
-        return redirect()->route('admin.guru.index')->with('success', 'Akun Guru berhasil dinonaktifkan.');
+        $message = $newStatus ? 'Akun Guru berhasil diaktifkan kembali.' : 'Akun Guru berhasil dinonaktifkan.';
+
+        return redirect()->route('admin.guru.index')->with('success', $message);
     }
 
     protected function ensureIsGuru(User $user): void
     {
-        abort_unless($user->hasRole('guru'), 404);
+        $isGuru = method_exists($user, 'hasRole') 
+            ? $user->hasRole('guru') 
+            : (($user->role ?? '') === 'guru');
+
+        abort_unless($isGuru, 404);
     }
 
-    protected function storePhotoIfPresent(StoreGuruRequest|UpdateGuruRequest $request): ?int
+    protected function storePhotoIfPresent(Request $request): ?array
     {
         if (! $request->hasFile('photo')) {
             return null;
@@ -177,13 +236,18 @@ class GuruController extends Controller
         $path = $file->store('staff', 'public');
 
         $media = Media::create([
-            'file_name' => basename($path),
-            'file_path' => $path,
-            'mime_type' => $file->getClientMimeType(),
-            'size' => $file->getSize(),
-            'uploaded_by' => auth()->id(),
+            'original_name' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+            'file_name'     => $file->hashName(),
+            'path'          => $path,
+            'disk'          => 'public',
+            'mime_type'     => $file->getMimeType(),
+            'size'          => $file->getSize(),
+            'created_by'    => auth()->id(),
         ]);
 
-        return $media->id;
+        return [
+            'id'   => $media->id,
+            'path' => $path,
+        ];
     }
 }

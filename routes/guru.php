@@ -1,18 +1,50 @@
 <?php
 
-use App\Http\Controllers\Guru\AuthenticatedSessionController;
+use App\Enums\UserRole;
+use App\Http\Controllers\Guru\AccountController;
+use App\Http\Controllers\Guru\AchievementController;
+use App\Http\Controllers\Guru\ActivityController;
 use App\Http\Controllers\Guru\DashboardController;
+use App\Http\Controllers\Guru\StudentWorkController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('guest')->prefix('guru')->name('guru.')->group(function () {
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
-    Route::post('login', [AuthenticatedSessionController::class, 'store'])
-        ->middleware('throttle:5,1')
-        ->name('authenticate');
-});
+/*
+|--------------------------------------------------------------------------
+| Rute Guru Protected (Role Guru & Admin)
+|--------------------------------------------------------------------------
+*/
 
-// role:guru|admin — Admin boleh mengakses area Guru untuk pengawasan (sesuai persetujuan Anda)
-Route::middleware(['auth', 'role:guru|admin'])->prefix('guru')->name('guru.')->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-    Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
-});
+// Menggunakan tanda pipa '|' (OR) untuk Spatie Permission
+$guruRoles = UserRole::Guru->value . '|' . UserRole::Admin->value;
+
+Route::middleware(['web', 'auth:web', 'role:' . $guruRoles . ',web'])
+    ->prefix('guru')
+    ->name('guru.')
+    ->group(function () {
+
+        // Redirect /guru ke /guru/dashboard
+        Route::get('/', fn () => redirect()->route('guru.dashboard'));
+
+        // Dashboard Utama Guru
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        // Pengelolaan Karya, Kegiatan, dan Prestasi Guru
+        Route::resources([
+            'karya-siswa' => StudentWorkController::class,
+            'kegiatan'    => ActivityController::class,
+            'prestasi'    => AchievementController::class,
+        ], [
+            'except'     => ['show'],
+            'parameters' => [
+                'karya-siswa' => 'studentWork',
+                'kegiatan'    => 'activity',
+                'prestasi'    => 'achievement',
+            ],
+        ]);
+
+        // Pengaturan Akun Profil Guru
+        Route::controller(AccountController::class)->group(function () {
+            Route::get('account', 'edit')->name('account.edit');
+            Route::put('account', 'update')->name('account.update');
+        });
+    });

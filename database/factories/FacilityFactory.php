@@ -19,16 +19,13 @@ class FacilityFactory extends Factory
         return [
             'name' => ucwords(fake()->words(2, true)),
             'description' => fake()->paragraph(),
-            'sort_order' => fake()->numberBetween(0, 50),
+            'sort_order' => fake()->numberBetween(1, 50),
             'photo_media_id' => null,
             'created_by' => User::factory(),
             'updated_by' => null,
         ];
     }
 
-    /**
-     * State untuk membuat fasilitas yang langsung terhubung dengan foto media.
-     */
     public function withPhoto(): static
     {
         return $this->state(fn (array $attributes) => [

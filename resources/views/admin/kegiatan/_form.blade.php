@@ -1,26 +1,60 @@
-@php 
-    $act = $activity ?? null; 
-@endphp
-
-<div x-data="{
-    coverPreview: null,
-    removedGalleries: [],
+@php
+    $act = $activity ?? $act ?? null; 
     
-    handleCoverChange(e) {
-        const file = e.target.files[0];
-        if (file) {
-            this.coverPreview = URL.createObjectURL(file);
-        }
-    },
-    
-    toggleRemoveGallery(id) {
-        if (this.removedGalleries.includes(id)) {
-            this.removedGalleries = this.removedGalleries.filter(item => item !== id);
-        } else {
-            this.removedGalleries.push(id);
+    // Penanganan URL Cover yang fleksibel
+    $coverUrl = null;
+    if (isset($act) && $act) {
+        if (isset($act->cover_url)) {
+            $coverUrl = $act->cover_url;
+        } elseif (isset($act->cover) && $act->cover?->path) {
+            $coverDisk = $act->cover->disk ?? 'public';
+            $coverUrl = \Illuminate\Support\Facades\Storage::disk($coverDisk)->url(ltrim($act->cover->path, '/'));
         }
     }
-}" class="space-y-6">
+@endphp
+
+<div class="space-y-5"
+     x-data="{
+        coverFileName: '',
+        onCoverSelected(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                this.resetCover();
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Ukuran berkas cover terlalu besar! Maksimal 5 MB.');
+                event.target.value = '';
+                this.resetCover();
+                return;
+            }
+
+            this.coverFileName = file.name;
+
+            if (file.type.startsWith('image/')) {
+                // Panggil Cropper Modal Global untuk Cover Kegiatan (Rasio 16:9)
+                $dispatch('open-cropper', {
+                    title: 'Potong Cover Kegiatan (16:9)',
+                    aspectRatio: 16 / 9,
+                    file: file,
+                    targetInput: $refs.coverInput,
+                    targetPreview: $refs.coverPreviewImg,
+                    onCropComplete: () => {
+                        $refs.coverPreviewBox.classList.remove('hidden');
+                        if ($refs.coverPreviewEmpty) $refs.coverPreviewEmpty.classList.add('hidden');
+                    }
+                });
+            }
+        },
+        resetCover() {
+            if ($refs.coverInput) $refs.coverInput.value = '';
+            if ($refs.coverPreviewImg) $refs.coverPreviewImg.src = '#';
+            this.coverFileName = '';
+            if ($refs.coverPreviewBox) $refs.coverPreviewBox.classList.add('hidden');
+            if ($refs.coverPreviewEmpty) $refs.coverPreviewEmpty.classList.remove('hidden');
+        }
+     }">
 
     <!-- Input Tersembunyi untuk ID Galeri yang Dihapus -->
     <template x-for="id in removedGalleries" :key="id">
@@ -28,10 +62,10 @@
     </template>
 
     <!-- Grid Judul & Tanggal -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-            <label for="title" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                Judul Kegiatan <span class="text-red-500">*</span>
+            <label for="title" class="block text-sm font-semibold text-slate-900 mb-1.5">
+                Judul Kegiatan <span class="text-rose-500 ml-1">*</span>
             </label>
             <input type="text"
                    name="title"
@@ -39,124 +73,133 @@
                    value="{{ old('title', $act->title ?? '') }}"
                    placeholder="Masukkan judul kegiatan..."
                    required
-                   class="w-full text-sm border border-gray-300 rounded-lg px-3.5 py-2.5 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition @error('title') border-red-500 @enderror">
+                   class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition @error('title') border-rose-300 bg-rose-50/30 @enderror">
             @error('title')
-                <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
+                <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
             @enderror
         </div>
 
         <div>
-            <label for="event_date" class="block text-sm font-semibold text-gray-700 mb-1.5">
-                Tanggal Kegiatan <span class="text-red-500">*</span>
+            <label for="event_date" class="block text-sm font-semibold text-slate-900 mb-1.5">
+                Tanggal Kegiatan <span class="text-rose-500 ml-1">*</span>
             </label>
             <input type="date"
                    name="event_date"
                    id="event_date"
-                   value="{{ old('event_date', isset($act) && $act->event_date ? $act->event_date->format('Y-m-d') : '') }}"
+                   value="{{ old('event_date', isset($act) && $act->event_date ? (is_string($act->event_date) ? \Carbon\Carbon::parse($act->event_date)->format('Y-m-d') : $act->event_date->format('Y-m-d')) : '') }}"
                    required
-                   class="w-full text-sm border border-gray-300 rounded-lg px-3.5 py-2.5 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition bg-white @error('event_date') border-red-500 @enderror">
+                   class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition bg-white cursor-pointer @error('event_date') border-rose-300 bg-rose-50/30 @enderror">
             @error('event_date')
-                <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
+                <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
             @enderror
         </div>
     </div>
 
     <!-- Deskripsi / Konten -->
     <div>
-        <label for="content" class="block text-sm font-semibold text-gray-700 mb-1.5">Deskripsi Kegiatan</label>
+        <label for="content" class="block text-sm font-semibold text-slate-900 mb-1.5">Deskripsi Kegiatan</label>
         <textarea name="content"
                   id="content"
-                  rows="5"
+                  rows="4"
                   placeholder="Tuliskan deskripsi lengkap mengenai kegiatan ini..."
-                  class="w-full text-sm border border-gray-300 rounded-lg px-3.5 py-2.5 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition resize-none @error('content') border-red-500 @enderror">{{ old('content', $act->content ?? '') }}</textarea>
+                  class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition resize-y @error('content') border-rose-300 bg-rose-50/30 @enderror">{{ old('content', $act->content ?? '') }}</textarea>
         @error('content')
-            <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
+            <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
         @enderror
     </div>
 
     <!-- Status Publikasi -->
     <div>
-        <label for="status" class="block text-sm font-semibold text-gray-700 mb-1.5">
-            Status Publikasi <span class="text-red-500">*</span>
+        <label for="status" class="block text-sm font-semibold text-slate-900 mb-1.5">
+            Status Publikasi <span class="text-rose-500 ml-1">*</span>
         </label>
-        <select name="status" id="status" class="w-full text-sm border border-gray-300 rounded-lg px-3.5 py-2.5 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition bg-white @error('status') border-red-500 @enderror">
+        <select name="status" id="status" class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition bg-white cursor-pointer @error('status') border-rose-300 bg-rose-50/30 @enderror" required>
             @foreach (\App\Enums\PublishStatus::cases() as $status)
-                <option value="{{ $status->value }}" @selected(old('status', $act->status->value ?? 'draft') === $status->value)>
-                    {{ ucfirst($status->value) }}
+                @php
+                    $statusVal = is_object($act?->status) ? $act->status->value : ($act->status ?? 'draft');
+                @endphp
+                <option value="{{ $status->value }}" @selected(old('status', $statusVal) === $status->value)>
+                    {{ method_exists($status, 'label') ? $status->label() : ucfirst($status->value) }}
                 </option>
             @endforeach
         </select>
         @error('status')
-            <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
+            <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
         @enderror
     </div>
 
     <!-- Cover Kegiatan -->
-    <div class="pt-4 border-t border-gray-100">
-        <label class="block text-sm font-semibold text-gray-700 mb-1">Cover Kegiatan</label>
-        <p class="text-xs text-gray-500 mb-3">Format: JPEG, PNG, WEBP (Maksimal 2MB)</p>
+    <div class="pt-4 border-t border-slate-200">
+        <label class="block text-sm font-semibold text-slate-900 mb-1">Cover Kegiatan</label>
+        <p class="text-xs text-slate-400 mb-3">Format: JPEG, PNG, WEBP (Maksimal 5MB, Rasio 16:9)</p>
 
         <!-- Preview Cover -->
         <div class="mb-3 flex items-center gap-4">
-            <template x-if="coverPreview">
-                <div>
-                    <span class="block text-xs font-medium text-gray-500 mb-1">Preview Baru:</span>
-                    <img :src="coverPreview" class="w-40 h-24 object-cover rounded-lg border border-indigo-200 shadow-sm">
-                </div>
-            </template>
+            <div x-ref="coverPreviewBox" id="cover-preview-box" class="relative w-40 h-24 rounded-xl overflow-hidden border border-slate-300 shrink-0 shadow-xs {{ $coverUrl ? '' : 'hidden' }}">
+                <img x-ref="coverPreviewImg" id="cover-preview-img" src="{{ $coverUrl ?? '#' }}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/600x400/e2e8f0/64748b?text=Cover+Error';">
+                <div class="absolute bottom-0 inset-x-0 bg-slate-900/70 text-white text-[10px] text-center py-0.5 font-medium">Cover Aktif</div>
+            </div>
 
-            @if (isset($act) && $act->cover)
-                <div x-show="!coverPreview">
-                    <span class="block text-xs font-medium text-gray-500 mb-1">Cover Saat Ini:</span>
-                    <img src="{{ Storage::url($act->cover->file_path) }}" 
-                         onerror="this.onerror=null; this.src='https://placehold.co/600x400/e2e8f0/64748b?text=Cover+Tidak+Ditemukan';"
-                         alt="Cover Saat Ini" 
-                         class="w-40 h-24 object-cover rounded-lg border border-gray-200 shadow-sm">
-                </div>
-            @endif
+            <div x-ref="coverPreviewEmpty" id="cover-preview-empty" class="w-40 h-24 bg-slate-100 rounded-xl border border-dashed border-slate-300 flex items-center justify-center text-xs text-slate-400 font-medium shrink-0 {{ $coverUrl ? 'hidden' : '' }}">
+                Belum Ada
+            </div>
         </div>
 
         <input type="file"
                name="cover"
+               id="cover"
+               x-ref="coverInput"
                accept="image/jpeg,image/png,image/webp"
-               @change="handleCoverChange"
-               class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-gray-300 rounded-lg cursor-pointer bg-gray-50/50 focus:outline-none">
+               @change="onCoverSelected($event)"
+               class="w-full text-sm text-slate-500 p-1 file:mr-3 file:py-1.5 file:px-3.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-300 rounded-xl cursor-pointer bg-slate-50/50 shadow-xs focus:outline-none flex items-center @error('cover') border-rose-300 bg-rose-50/30 @enderror">
         @error('cover')
-            <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
+            <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
         @enderror
     </div>
 
     <!-- Gambar Galeri -->
-    <div class="pt-4 border-t border-gray-100">
-        <label class="block text-sm font-semibold text-gray-700 mb-1">Gambar Galeri (Dokumentasi)</label>
-        <p class="text-xs text-gray-500 mb-3">Maksimal total 8 gambar galeri (@2MB, JPEG/PNG/WEBP)</p>
+    <div class="pt-4 border-t border-slate-200">
+        <label class="block text-sm font-semibold text-slate-900 mb-1">Gambar Galeri (Dokumentasi)</label>
+        <p class="text-xs text-slate-400 mb-3">Format: JPEG, PNG, WEBP (Maksimal 5 gambar, Maks. 5MB per gambar)</p>
 
         <!-- Galeri Foto Saat Ini -->
-        @if (isset($act) && $act->galleries->count() > 0)
+        @if (isset($act) && isset($act->galleries) && $act->galleries->count() > 0)
             <div class="mb-4">
-                <span class="block text-xs font-semibold text-gray-600 mb-2">
+                <span class="block text-xs font-semibold text-slate-600 mb-2">
                     Foto Galeri Tersimpan (Klik foto untuk menandai batal/hapus):
                 </span>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     @foreach ($act->galleries as $gallery)
-                        @if ($gallery->media)
+                        @php
+                            $media = $gallery->media ?? $gallery;
+                            $galUrl = null;
+                            if ($media) {
+                                $galDisk = $media->disk ?? 'public';
+                                $galUrl = $media->url ?? ($media->path ? \Illuminate\Support\Facades\Storage::disk($galDisk)->url(ltrim($media->path, '/')) : null);
+                            }
+                        @endphp
+                        @if ($galUrl)
                             <div @click="toggleRemoveGallery({{ $gallery->id }})"
-                                 class="relative group rounded-lg overflow-hidden border border-gray-200 aspect-video bg-gray-100 cursor-pointer transition transform active:scale-95"
-                                 :class="{ 'ring-2 ring-red-500 opacity-60': removedGalleries.includes({{ $gallery->id }}) }">
+                                 class="relative group rounded-xl overflow-hidden border-2 cursor-pointer transition-all duration-150 h-28 sm:h-32 select-none"
+                                 :class="removedGalleries.includes({{ $gallery->id }}) ? 'border-rose-400 ring-2 ring-rose-300/60' : 'border-slate-200 hover:border-indigo-400'">
                                 
-                                <img src="{{ Storage::url($gallery->media->file_path) }}" 
+                                <img src="{{ $galUrl }}" 
                                      onerror="this.onerror=null; this.src='https://placehold.co/600x400/e2e8f0/64748b?text=Foto+Galeri';"
                                      class="w-full h-full object-cover">
                                 
                                 <div x-show="removedGalleries.includes({{ $gallery->id }})" 
-                                     class="absolute inset-0 bg-red-900/70 flex flex-col items-center justify-center text-white text-xs font-bold gap-1 p-1 text-center">
-                                    <svg class="w-5 h-5 text-red-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                    <span>Akan Dihapus</span>
+                                     class="absolute inset-0 bg-rose-950/60 backdrop-blur-[1px] flex flex-col items-center justify-center text-white text-xs font-semibold gap-1 p-2 text-center transition" x-cloak>
+                                    <svg class="w-6 h-6 text-white drop-shadow-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                    <span class="text-xs font-bold text-white drop-shadow-xs">Akan Dihapus</span>
                                 </div>
 
                                 <div x-show="!removedGalleries.includes({{ $gallery->id }})" 
-                                     class="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 opacity-80 group-hover:opacity-100 transition hover:bg-red-600">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                     class="absolute top-2 right-2 bg-slate-900/60 text-white rounded-full p-1 opacity-80 group-hover:opacity-100 transition hover:bg-rose-600 shadow-xs">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
                                 </div>
                             </div>
                         @endif
@@ -165,42 +208,87 @@
             </div>
         @endif
 
-        <input type="file"
-               name="images[]"
-               multiple
-               accept="image/jpeg,image/png,image/webp"
-               class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-gray-300 rounded-lg cursor-pointer bg-gray-50/50 focus:outline-none">
+        <!-- Dropzone Unggah Gambar Baru -->
+        <label for="images" class="mt-1 flex flex-col items-center justify-center px-4 py-6 border-2 border-slate-300 border-dashed rounded-2xl bg-slate-50/50 hover:bg-slate-100/80 transition-colors cursor-pointer">
+            <div class="space-y-1 text-center">
+                <svg class="mx-auto h-8 w-8 text-slate-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="text-xs text-indigo-600 font-semibold">
+                    <span>Klik untuk pilih foto galeri baru</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Maksimal total 5 gambar (Maks. 5MB per file, format JPEG/PNG/WebP)</p>
+            </div>
+            <input id="images" name="images[]" type="file" multiple accept="image/jpeg,image/png,image/webp" class="hidden" onchange="previewImages(event)">
+        </label>
+
+        <!-- Container Live Preview -->
+        <div id="image-preview-container" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 mt-3 hidden"></div>
+
         @error('images')
-            <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
+            <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
         @enderror
         @error('images.*')
-            <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
+            <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
         @enderror
     </div>
-
-    <!-- Submit Button Bar Dinamis -->
-    <div class="pt-5 border-t border-gray-200 flex items-center justify-between gap-3">
-        <a href="{{ route('admin.kegiatan.index') }}" class="px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
-            Batal
-        </a>
-
-        <button type="submit" 
-                :class="removedGalleries.length > 0 ? 'bg-rose-600 hover:bg-rose-700 ring-2 ring-rose-500/30' : 'bg-indigo-600 hover:bg-indigo-700'"
-                class="inline-flex items-center justify-center gap-2 text-white font-medium px-5 py-2.5 rounded-lg shadow-sm transition duration-150 text-sm">
-            
-            <template x-if="removedGalleries.length > 0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                </svg>
-            </template>
-
-            <template x-if="removedGalleries.length === 0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-            </template>
-
-            <span x-text="removedGalleries.length > 0 ? `Hapus (${removedGalleries.length}) Gambar & Simpan` : '{{ isset($act) ? 'Simpan Perubahan' : 'Simpan Kegiatan' }}'"></span>
-        </button>
-    </div>
 </div>
+
+<script>
+    function previewImages(event) {
+        const container = document.getElementById('image-preview-container');
+        if (!container) return;
+        container.innerHTML = '';
+        const files = Array.from(event.target.files);
+
+        const MAX_TOTAL_SIZE = 25 * 1024 * 1024;
+        const MAX_FILE_SIZE = 5 * 1024 * 1024;
+        const MAX_FILES_COUNT = 5;
+
+        if (files.length > MAX_FILES_COUNT) {
+            alert('Maksimal hanya boleh mengunggah 5 file gambar sekaligus.');
+            event.target.value = '';
+            container.classList.add('hidden');
+            return;
+        }
+
+        let totalSize = 0;
+        for (let file of files) {
+            if (file.size > MAX_FILE_SIZE) {
+                alert(`File "${file.name}" terlalu besar! Maksimal ukuran per gambar adalah 5 MB.`);
+                event.target.value = '';
+                container.classList.add('hidden');
+                return;
+            }
+            totalSize += file.size;
+        }
+
+        if (totalSize > MAX_TOTAL_SIZE) {
+            alert('Total ukuran seluruh gambar melebihi batas!');
+            event.target.value = '';
+            container.classList.add('hidden');
+            return;
+        }
+
+        if (files.length > 0) {
+            container.classList.remove('hidden');
+            files.forEach((file) => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const card = document.createElement('div');
+                        card.className = 'relative border border-slate-200 rounded-xl overflow-hidden bg-white p-1.5 shadow-xs';
+                        card.innerHTML = `
+                            <img src="${e.target.result}" class="w-full h-20 object-cover rounded-lg">
+                            <p class="text-[10px] text-slate-500 truncate mt-1 text-center font-medium">${file.name}</p>
+                        `;
+                        container.appendChild(card);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+</script>

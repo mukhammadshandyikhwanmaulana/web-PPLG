@@ -10,9 +10,9 @@ return new class extends Migration
     {
         Schema::create('profile_contents', function (Blueprint $table) {
             $table->id();
-            $table->text('history_content')->nullable();
-            $table->text('vision_content')->nullable();
-            $table->text('mission_content')->nullable();
+            $table->longText('history_content')->nullable();
+            $table->longText('vision_content')->nullable();
+            $table->longText('mission_content')->nullable();
             $table->text('about_excerpt')->nullable();
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();

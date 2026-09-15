@@ -9,23 +9,18 @@ use App\Http\Requests\Admin\UpdateActivityRequest;
 use App\Models\Activity;
 use App\Models\Gallery;
 use App\Models\Media;
+use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ActivityController extends Controller
 {
-    protected function authorizeAdmin(): void
-    {
-        abort_unless(auth()->user()?->hasRole('admin'), 403);
-    }
-
     public function index(Request $request): View
     {
-        $this->authorizeAdmin();
-
         $query = Activity::query()->with(['cover', 'galleries.media']);
 
         if ($search = trim((string) $request->query('search'))) {
@@ -47,188 +42,279 @@ class ActivityController extends Controller
 
     public function create(): View
     {
-        $this->authorizeAdmin();
-
         return view('admin.kegiatan.create');
     }
 
     public function store(StoreActivityRequest $request): RedirectResponse
     {
-        $this->authorizeAdmin();
-
         $data = $request->validated();
-        $coverMediaId = $this->storeCoverIfPresent($request->file('cover'));
-        $galleryMediaIds = $this->storeGalleryImages($request->file('images', []));
 
-        DB::transaction(function () use ($data, $coverMediaId, $galleryMediaIds) {
-            $slug = $this->generateUniqueSlug($data['title']);
+        DB::transaction(function () use ($request, $data) {
+            $title = $data['title'];
+            $content = $data['content'] ?? null;
 
-            $publishedAt = null;
-            if ($data['status'] === PublishStatus::Published->value) {
-                $publishedAt = now();
+            $coverMediaId = $this->storeCoverIfPresent($request->file('cover'), $title, $content);
+            $galleryMediaIds = $this->storeGalleryImages($request->file('images', []), $title, $content);
+            $slug = $this->generateUniqueSlug($title);
+
+            if (! $coverMediaId && ! empty($galleryMediaIds)) {
+                $coverMediaId = array_shift($galleryMediaIds);
             }
 
+            $statusValue = $data['status'] instanceof PublishStatus 
+                ? $data['status']->value 
+                : ($data['status'] ?? PublishStatus::Draft->value);
+
+            $publishedAt = ($statusValue === PublishStatus::Published->value) ? now() : null;
+
             $activity = Activity::create([
-                'title' => $data['title'],
-                'slug' => $slug,
-                'event_date' => $data['event_date'],
-                'content' => $data['content'] ?? null,
+                'title'          => $title,
+                'slug'           => $slug,
+                'event_date'     => $data['event_date'],
+                'content'        => $content,
                 'cover_media_id' => $coverMediaId,
-                'status' => $data['status'],
-                'published_at' => $publishedAt,
-                'created_by' => auth()->id(),
-                'updated_by' => auth()->id(),
+                'status'         => $statusValue,
+                'published_at'   => $publishedAt,
+                'created_by'     => auth()->id(),
+                'updated_by'     => auth()->id(),
             ]);
 
             foreach ($galleryMediaIds as $index => $mediaId) {
                 Gallery::create([
-                    'media_id' => $mediaId,
-                    'galleryable_id' => $activity->id,
+                    'media_id'         => $mediaId,
+                    'galleryable_id'   => $activity->id,
                     'galleryable_type' => Activity::class,
-                    'sort_order' => $index,
+                    'sort_order'       => $index + 1,
                 ]);
+            }
+
+            if (class_exists(ActivityLogger::class)) {
+                app(ActivityLogger::class)->log(
+                    action: 'create_activity',
+                    description: "Menambahkan kegiatan baru: \"{$activity->title}\"",
+                    subject: $activity
+                );
             }
         });
 
-        return redirect()
-            ->route('admin.kegiatan.index')
-            ->with('success', 'Kegiatan berhasil ditambahkan.');
+        return redirect()->route('admin.kegiatan.index')->with('success', 'Kegiatan berhasil ditambahkan.');
     }
 
     public function edit(Activity $activity): View
     {
-        $this->authorizeAdmin();
-
         $activity->load(['cover', 'galleries.media']);
-
         return view('admin.kegiatan.edit', compact('activity'));
     }
 
     public function update(UpdateActivityRequest $request, Activity $activity): RedirectResponse
     {
-        $this->authorizeAdmin();
-
         $data = $request->validated();
-        $newCoverMediaId = $this->storeCoverIfPresent($request->file('cover'));
-        $galleryMediaIds = $this->storeGalleryImages($request->file('images', []));
         $removeIds = $data['remove_gallery_ids'] ?? [];
+        $filesToDelete = [];
 
-        DB::transaction(function () use ($data, $newCoverMediaId, $galleryMediaIds, $removeIds, $activity) {
+        DB::transaction(function () use ($request, $data, $removeIds, $activity, &$filesToDelete) {
+            $title = $data['title'];
+            $content = $data['content'] ?? null;
+
+            $newCoverMediaId = $this->storeCoverIfPresent($request->file('cover'), $title, $content);
+            $galleryMediaIds = $this->storeGalleryImages($request->file('images', []), $title, $content);
+
             $slug = $activity->slug;
-            if (Str::slug($data['title']) !== Str::slug($activity->title)) {
-                $slug = $this->generateUniqueSlug($data['title'], $activity->id);
+            if (Str::slug($title) !== Str::slug($activity->title)) {
+                $slug = $this->generateUniqueSlug($title, $activity->id);
             }
 
+            $statusValue = $data['status'] instanceof PublishStatus 
+                ? $data['status']->value 
+                : ($data['status'] ?? (is_object($activity->status) ? $activity->status->value : $activity->status));
+
             $publishedAt = $activity->published_at;
-            if ($data['status'] === PublishStatus::Published->value && $publishedAt === null) {
+            if ($statusValue === PublishStatus::Published->value && $publishedAt === null) {
                 $publishedAt = now();
             }
 
             $updateData = [
-                'title' => $data['title'],
-                'slug' => $slug,
-                'event_date' => $data['event_date'],
-                'content' => $data['content'] ?? null,
-                'status' => $data['status'],
+                'title'        => $title,
+                'slug'         => $slug,
+                'event_date'   => $data['event_date'],
+                'content'      => $content,
+                'status'       => $statusValue,
                 'published_at' => $publishedAt,
-                'updated_by' => auth()->id(),
+                'updated_by'   => auth()->id(),
             ];
 
-            // Cover hanya diganti jika ada file baru diunggah
             if ($newCoverMediaId !== null) {
+                if ($activity->cover_media_id) {
+                    $oldMedia = Media::find($activity->cover_media_id);
+                    if ($oldMedia) {
+                        $filesToDelete[] = ['disk' => $oldMedia->disk, 'path' => $oldMedia->path];
+                        $oldMedia->forceDelete();
+                    }
+                }
                 $updateData['cover_media_id'] = $newCoverMediaId;
             }
 
             $activity->update($updateData);
 
-            $this->syncGalleries($activity, $galleryMediaIds, $removeIds);
+            $this->syncGalleries($activity, $galleryMediaIds, $removeIds, $filesToDelete);
+
+            $activity->unsetRelation('galleries');
+            if (! $activity->cover_media_id && $activity->galleries()->exists()) {
+                $firstGallery = $activity->galleries()->with('media')->first();
+                if ($firstGallery && $firstGallery->media) {
+                    $activity->update(['cover_media_id' => $firstGallery->media_id]);
+                    $firstGallery->delete();
+                }
+            }
+
+            $this->updateExistingMediaAltText($activity, $title, $content);
+
+            if (class_exists(ActivityLogger::class)) {
+                app(ActivityLogger::class)->log(
+                    action: 'update_activity',
+                    description: "Memperbarui kegiatan: \"{$activity->title}\"",
+                    subject: $activity
+                );
+            }
         });
 
-        // LOGIKA DINAMIS REDIRECT:
-        if (!empty($removeIds)) {
-            // Jika user menghapus gambar, kembalikan ke halaman edit agar terlihat efek hapusnya
-            return redirect()
-                ->route('admin.kegiatan.edit', $activity)
-                ->with('success', 'Gambar galeri berhasil dihapus dan perubahan disimpan.');
+        foreach ($filesToDelete as $file) {
+            if (!empty($file['path'])) {
+                Storage::disk($file['disk'] ?? 'public')->delete($file['path']);
+            }
         }
 
-        // Jika tidak ada gambar yang dihapus, langsung kembali ke halaman daftar kegiatan
-        return redirect()
-            ->route('admin.kegiatan.index')
-            ->with('success', 'Kegiatan berhasil diperbarui.');
+        return redirect()->route('admin.kegiatan.index')->with('success', 'Kegiatan berhasil diperbarui.');
     }
 
     public function destroy(Activity $activity): RedirectResponse
     {
-        $this->authorizeAdmin();
+        $filesToDelete = [];
+        $activityTitle = $activity->title;
 
-        $activity->delete();
+        DB::transaction(function () use ($activity, &$filesToDelete, $activityTitle) {
+            if ($activity->cover) {
+                $filesToDelete[] = ['disk' => $activity->cover->disk, 'path' => $activity->cover->path];
+                $activity->cover->forceDelete();
+            }
 
-        return redirect()
-            ->route('admin.kegiatan.index')
-            ->with('success', 'Kegiatan berhasil dihapus.');
-    }
+            $galleries = $activity->galleries()->with('media')->get();
+            foreach ($galleries as $gallery) {
+                if ($gallery->media) {
+                    $filesToDelete[] = ['disk' => $gallery->media->disk, 'path' => $gallery->media->path];
+                    $gallery->media->forceDelete();
+                }
+                $gallery->delete();
+            }
 
-    protected function storeCoverIfPresent($cover): ?int
-    {
-        if (! $cover) {
-            return null;
+            $activity->forceDelete();
+
+            if (class_exists(ActivityLogger::class)) {
+                app(ActivityLogger::class)->log(
+                    action: 'delete_activity',
+                    description: "Menghapus kegiatan secara permanen: \"{$activityTitle}\""
+                );
+            }
+        });
+
+        foreach ($filesToDelete as $file) {
+            if (!empty($file['path'])) {
+                Storage::disk($file['disk'] ?? 'public')->delete($file['path']);
+            }
         }
 
+        return redirect()->route('admin.kegiatan.index')->with('success', 'Kegiatan berhasil dihapus secara permanen beserta berkas medianya.');
+    }
+
+    protected function storeCoverIfPresent($cover, string $title, ?string $content = null): ?int
+    {
+        if (! $cover) return null;
         $path = $cover->store('activities/cover', 'public');
-
         $media = Media::create([
-            'file_name' => $cover->getClientOriginalName(),
-            'file_path' => $path,
-            'mime_type' => $cover->getClientMimeType(),
-            'size' => $cover->getSize(),
-            'uploaded_by' => auth()->id(),
+            'original_name' => $cover->getClientOriginalName(),
+            'file_name'     => basename($path),
+            'disk'          => 'public',
+            'path'          => $path,
+            'mime_type'     => $cover->getClientMimeType(),
+            'size'          => $cover->getSize(),
+            'alt_text'      => $this->formatAltText($content, $title, 'Cover'),
+            'created_by'    => auth()->id(),
         ]);
-
         return $media->id;
     }
 
-    protected function storeGalleryImages(array $images): array
+    protected function storeGalleryImages(array $images, string $title, ?string $content = null): array
     {
         $mediaIds = [];
-
-        foreach (array_filter($images) as $image) {
+        foreach (array_filter($images) as $index => $image) {
             $path = $image->store('activities/gallery', 'public');
-
             $media = Media::create([
-                'file_name' => $image->getClientOriginalName(),
-                'file_path' => $path,
-                'mime_type' => $image->getClientMimeType(),
-                'size' => $image->getSize(),
-                'uploaded_by' => auth()->id(),
+                'original_name' => $image->getClientOriginalName(),
+                'file_name'     => basename($path),
+                'disk'          => 'public',
+                'path'          => $path,
+                'mime_type'     => $image->getClientMimeType(),
+                'size'          => $image->getSize(),
+                'alt_text'      => $this->formatAltText($content, $title, "Galeri " . ($index + 1)),
+                'created_by'    => auth()->id(),
             ]);
-
             $mediaIds[] = $media->id;
         }
-
         return $mediaIds;
     }
 
-    protected function syncGalleries(Activity $activity, array $newMediaIds, array $removeIds): void
+    protected function syncGalleries(Activity $activity, array $newMediaIds, array $removeGalleryIds, array &$filesToDelete = []): void
     {
-        if (! empty($removeIds)) {
-            $activity->galleries()
-                ->whereIn('id', $removeIds)
-                ->delete();
+        if (! empty($removeGalleryIds)) {
+            $galleriesToRemove = $activity->galleries()->whereIn('id', $removeGalleryIds)->with('media')->get();
+            foreach ($galleriesToRemove as $gallery) {
+                if ($gallery->media) {
+                    $filesToDelete[] = ['disk' => $gallery->media->disk, 'path' => $gallery->media->path];
+                    $gallery->media->forceDelete();
+                }
+                $gallery->delete();
+            }
         }
 
-        $nextOrder = $activity->galleries()->max('sort_order');
-        $nextOrder = $nextOrder === null ? 0 : $nextOrder + 1;
+        $nextOrder = (int) ($activity->galleries()->max('sort_order') ?? 0);
+        $nextOrder++;
 
         foreach ($newMediaIds as $mediaId) {
             Gallery::create([
-                'media_id' => $mediaId,
-                'galleryable_id' => $activity->id,
+                'media_id'         => $mediaId,
+                'galleryable_id'   => $activity->id,
                 'galleryable_type' => Activity::class,
-                'sort_order' => $nextOrder,
+                'sort_order'       => $nextOrder,
             ]);
             $nextOrder++;
         }
+    }
+
+    protected function updateExistingMediaAltText(Activity $activity, string $title, ?string $content): void
+    {
+        $activity->load(['cover', 'galleries.media']);
+        if ($activity->cover) {
+            $activity->cover->update([
+                'alt_text'   => $this->formatAltText($content, $title, 'Cover'),
+                'updated_by' => auth()->id(),
+            ]);
+        }
+        foreach ($activity->galleries as $index => $gallery) {
+            if ($gallery->media) {
+                $gallery->media->update([
+                    'alt_text'   => $this->formatAltText($content, $title, "Galeri " . ($index + 1)),
+                    'updated_by' => auth()->id(),
+                ]);
+            }
+        }
+    }
+
+    protected function formatAltText(?string $content, string $title, string $suffix = ''): string
+    {
+        $cleanContent = $content ? trim(strip_tags($content)) : '';
+        $baseText = $cleanContent !== '' ? $cleanContent : $title;
+        if ($suffix !== '') $baseText .= " ({$suffix})";
+        return Str::limit($baseText, 250);
     }
 
     protected function generateUniqueSlug(string $title, ?int $ignoreId = null): string
@@ -246,7 +332,6 @@ class ActivityController extends Controller
             $slug = "{$baseSlug}-{$suffix}";
             $suffix++;
         }
-
         return $slug;
     }
 }

@@ -11,6 +11,8 @@ class Facility extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'facilities';
+
     protected $fillable = [
         'name',
         'description',
@@ -20,13 +22,24 @@ class Facility extends Model
         'updated_by',
     ];
 
-    protected $casts = [
-        'sort_order' => 'integer',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'sort_order'     => 'integer',
+            'photo_media_id' => 'integer',
+            'created_by'     => 'integer',
+            'updated_by'     => 'integer',
+        ];
+    }
 
     public function photo(): BelongsTo
     {
         return $this->belongsTo(Media::class, 'photo_media_id');
+    }
+
+    public function foto(): BelongsTo
+    {
+        return $this->photo();
     }
 
     public function creator(): BelongsTo

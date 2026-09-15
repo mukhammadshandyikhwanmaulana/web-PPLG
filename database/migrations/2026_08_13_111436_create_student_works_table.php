@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('contributor_name')->nullable();
             $table->foreignId('supervisor_id')->nullable()->constrained('staff_members')->nullOnDelete();
             $table->string('demo_url')->nullable();
+            $table->foreignId('cover_media_id')->nullable()->constrained('media')->nullOnDelete();
             $table->boolean('is_featured')->default(false);
             $table->string('status')->default('draft');
             $table->timestamp('published_at')->nullable();
@@ -25,6 +26,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['status', 'published_at']);
+            $table->index(['status', 'is_featured', 'published_at']);
         });
     }
 

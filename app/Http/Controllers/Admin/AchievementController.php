@@ -11,33 +11,22 @@ use App\Models\Achievement;
 use App\Models\Media;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AchievementController extends Controller
 {
-    /**
-     * Memeriksa otorisasi akses admin.
-     */
-    protected function authorizeAdmin(): void
-    {
-        $user = auth()->user();
-
-        if (! $user || $user->hasRole('guru')) {
-            abort(403, 'THIS ACTION IS UNAUTHORIZED');
-        }
-    }
-
     public function index(Request $request): View
     {
-        $this->authorizeAdmin();
-
         $achievements = Achievement::with('document')
             ->when($request->filled('search'), function ($query) use ($request) {
-                $search = $request->input('search');
+                $search = trim((string) $request->input('search'));
                 $query->where(function ($q) use ($search) {
-                    $q->where('title', 'like', '%'.$search.'%')
-                        ->orWhere('contributor_name', 'like', '%'.$search.'%');
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('contributor_name', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
                 });
             })
             ->when($request->filled('level'), function ($query) use ($request) {
@@ -50,92 +39,137 @@ class AchievementController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('admin.prestasi.index', ['achievements' => $achievements]);
+        return view('admin.prestasi.index', compact('achievements'));
     }
 
     public function create(): View
     {
-        $this->authorizeAdmin();
-
         return view('admin.prestasi.create');
     }
 
     public function store(StoreAchievementRequest $request): RedirectResponse
     {
-        $this->authorizeAdmin();
+        DB::transaction(function () use ($request) {
+            $data = $request->validated();
+            $mediaId = $this->storeDocumentIfPresent($request);
 
-        $data = $request->validated();
-        $mediaId = $this->storeDocumentIfPresent($request);
+            $rawStatus = $data['status'] ?? '';
+            $status = $rawStatus instanceof PublishStatus 
+                ? $rawStatus 
+                : (PublishStatus::tryFrom((string)$rawStatus) ?? PublishStatus::Draft);
 
-        $status = PublishStatus::from($data['status']);
-        $level = AchievementLevel::from($data['level']);
+            $rawLevel = $data['level'] ?? null;
+            $level = $rawLevel instanceof AchievementLevel 
+                ? $rawLevel 
+                : ($rawLevel ? AchievementLevel::tryFrom((string)$rawLevel) : null);
 
-        Achievement::create([
-            'title' => $data['title'],
-            'slug' => $this->generateUniqueSlug($data['title']),
-            'achievement_date' => $data['achievement_date'] ?? null,
-            'level' => $level,
-            'contributor_name' => $data['contributor_name'] ?? null,
-            'description' => $data['description'] ?? null,
-            'document_media_id' => $mediaId,
-            'status' => $status,
-            'published_at' => $status === PublishStatus::Published ? now() : null,
-            'created_by' => auth()->id(),
-        ]);
+            Achievement::create([
+                'title'             => $data['title'],
+                'slug'              => $this->generateUniqueSlug($data['title']),
+                'achievement_date'  => $data['achievement_date'] ?? null,
+                'level'             => $level,
+                'contributor_name'  => $data['contributor_name'] ?? null,
+                'description'       => $data['description'] ?? null,
+                'document_media_id' => $mediaId,
+                'status'            => $status,
+                'published_at'      => $status === PublishStatus::Published ? now() : null,
+                'created_by'        => auth()->id(),
+                'updated_by'        => auth()->id(),
+            ]);
+        });
 
         return redirect()->route('admin.prestasi.index')->with('success', 'Prestasi berhasil ditambahkan.');
     }
 
     public function edit(Achievement $achievement): View
     {
-        $this->authorizeAdmin();
-
         $achievement->loadMissing('document');
-
-        return view('admin.prestasi.edit', ['achievement' => $achievement]);
+        return view('admin.prestasi.edit', compact('achievement'));
     }
 
     public function update(UpdateAchievementRequest $request, Achievement $achievement): RedirectResponse
     {
-        $this->authorizeAdmin();
+        $oldMedia = null;
 
-        $data = $request->validated();
-        $mediaId = $this->storeDocumentIfPresent($request);
+        DB::transaction(function () use ($request, $achievement, &$oldMedia) {
+            $data = $request->validated();
+            $newMediaId = $this->storeDocumentIfPresent($request);
 
-        $status = PublishStatus::from($data['status']);
-        $level = AchievementLevel::from($data['level']);
+            $rawStatus = $data['status'] ?? '';
+            $status = $rawStatus instanceof PublishStatus 
+                ? $rawStatus 
+                : (PublishStatus::tryFrom((string)$rawStatus) ?? $achievement->status);
 
-        $updateData = [
-            'title' => $data['title'],
-            'slug' => $this->generateUniqueSlug($data['title'], $achievement->id, $achievement->slug),
-            'achievement_date' => $data['achievement_date'],
-            'level' => $level,
-            'contributor_name' => $data['contributor_name'] ?? null,
-            'description' => $data['description'] ?? null,
-            'status' => $status,
-            'updated_by' => auth()->id(),
-        ];
+            $rawLevel = $data['level'] ?? null;
+            $level = $rawLevel instanceof AchievementLevel 
+                ? $rawLevel 
+                : ($rawLevel ? AchievementLevel::tryFrom((string)$rawLevel) : $achievement->level);
 
-        if ($status === PublishStatus::Published && $achievement->published_at === null) {
-            $updateData['published_at'] = now();
+            $updateData = [
+                'title'            => $data['title'],
+                'slug'             => $this->generateUniqueSlug($data['title'], $achievement->id),
+                'achievement_date' => $data['achievement_date'] ?? null,
+                'level'            => $level,
+                'contributor_name' => $data['contributor_name'] ?? null,
+                'description'      => $data['description'] ?? null,
+                'status'           => $status,
+                'updated_by'       => auth()->id(),
+            ];
+
+            if ($status === PublishStatus::Published && $achievement->published_at === null) {
+                $updateData['published_at'] = now();
+            }
+
+            if ($newMediaId !== null) {
+                if ($achievement->document_media_id) {
+                    $oldMedia = Media::find($achievement->document_media_id);
+                }
+                $updateData['document_media_id'] = $newMediaId;
+            } else {
+                if ($achievement->document_media_id) {
+                    $altText = $this->formatAltText($data['description'] ?? null, $data['title']);
+                    Media::where('id', $achievement->document_media_id)->update([
+                        'alt_text'   => $altText,
+                        'updated_by' => auth()->id(),
+                    ]);
+                }
+            }
+
+            $achievement->update($updateData);
+        });
+
+        if ($oldMedia) {
+            $isUsedElsewhere = Achievement::withTrashed()
+                ->where('document_media_id', $oldMedia->id)
+                ->where('id', '!=', $achievement->id)
+                ->exists();
+
+            if (! $isUsedElsewhere) {
+                Storage::disk($oldMedia->disk ?? 'public')->delete($oldMedia->path);
+                $oldMedia->forceDelete();
+            }
         }
-
-        if ($mediaId !== null) {
-            $updateData['document_media_id'] = $mediaId;
-        }
-
-        $achievement->update($updateData);
 
         return redirect()->route('admin.prestasi.index')->with('success', 'Prestasi berhasil diperbarui.');
     }
 
     public function destroy(Achievement $achievement): RedirectResponse
     {
-        $this->authorizeAdmin();
+        $oldMedia = $achievement->document;
 
-        $achievement->delete();
+        DB::transaction(function () use ($achievement) {
+            $achievement->forceDelete();
+        });
 
-        return redirect()->route('admin.prestasi.index')->with('success', 'Prestasi berhasil dihapus.');
+        if ($oldMedia) {
+            $isUsedElsewhere = Achievement::withTrashed()->where('document_media_id', $oldMedia->id)->exists();
+            if (! $isUsedElsewhere) {
+                Storage::disk($oldMedia->disk ?? 'public')->delete($oldMedia->path);
+                $oldMedia->forceDelete();
+            }
+        }
+
+        return redirect()->route('admin.prestasi.index')->with('success', 'Prestasi berhasil dihapus permanen.');
     }
 
     protected function storeDocumentIfPresent(Request $request): ?int
@@ -146,26 +180,33 @@ class AchievementController extends Controller
 
         $file = $request->file('document');
         $path = $file->store('achievements', 'public');
+        $altText = $this->formatAltText($request->input('description'), $request->input('title'));
 
         $media = Media::create([
-            'file_name' => $file->getClientOriginalName(),
-            'file_path' => $path,
-            'mime_type' => $file->getClientMimeType(),
-            'size' => $file->getSize(),
-            'uploaded_by' => auth()->id(),
+            'original_name' => $file->getClientOriginalName(),
+            'file_name'     => basename($path),
+            'disk'          => 'public',
+            'path'          => $path,
+            'mime_type'     => $file->getClientMimeType(),
+            'size'          => $file->getSize(),
+            'alt_text'      => $altText,
+            'created_by'    => auth()->id(),
         ]);
 
         return $media->id;
     }
 
-    protected function generateUniqueSlug(string $title, ?int $ignoreId = null, ?string $currentSlug = null): string
+    protected function formatAltText(?string $description, string $title): string
+    {
+        $cleanDesc = $description ? trim(strip_tags($description)) : '';
+        return $cleanDesc !== '' 
+            ? Str::limit($cleanDesc, 250) 
+            : Str::limit($title, 250);
+    }
+
+    protected function generateUniqueSlug(string $title, ?int $ignoreId = null): string
     {
         $base = Str::slug($title);
-
-        if ($currentSlug !== null && Str::slug($currentSlug) === $base) {
-            return $currentSlug;
-        }
-
         $slug = $base;
         $suffix = 1;
 

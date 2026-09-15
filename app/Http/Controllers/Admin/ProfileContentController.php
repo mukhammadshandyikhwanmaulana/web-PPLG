@@ -26,10 +26,7 @@ class ProfileContentController extends Controller
         $data = $request->validated();
         $data['updated_by'] = auth()->id();
 
-        // Mengisi data, memaksa waktu pembaruan menjadi detik ini, lalu menyimpan
-        $profile->fill($data);
-        $profile->updated_at = now();
-        $profile->save();
+        $profile->update($data);
 
         return redirect()
             ->route('admin.profil.edit')

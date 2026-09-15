@@ -6,87 +6,91 @@ use App\Enums\PublishStatus;
 use App\Models\Activity;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Validator;
 
 class UpdateActivityRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('admin') ?? false;
+        if (! auth()->check()) return false;
+        $user = auth()->user();
+
+        $isAdmin = (method_exists($user, 'hasRole') && $user->hasRole('admin')) || in_array(strtolower($user->role ?? ''), ['admin', 'superadmin']);
+        if ($isAdmin) return true;
+
+        $isGuru = (method_exists($user, 'hasRole') && $user->hasRole('guru')) || (strtolower($user->role ?? '') === 'guru');
+        if ($isGuru) {
+            $param = $this->route('kegiatan') ?? $this->route('activity') ?? collect($this->route()->parameters())->first();
+            $activity = $param instanceof Activity ? $param : Activity::find($param);
+
+            return $activity && ($activity->created_by === $user->id || $activity->user_id === $user->id);
+        }
+
+        return false;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $inputContent = $this->input('content');
+        $cleanContent = is_string($inputContent) ? trim($inputContent) : null;
+
+        $this->merge([
+            'title'   => $this->filled('title') ? trim((string) $this->title) : null,
+            'content' => $cleanContent !== '' ? $cleanContent : null,
+            'status'  => $this->filled('status') ? $this->status : null,
+        ]);
     }
 
     public function rules(): array
     {
-        // Deteksi parameter route baik {kegiatan} maupun {activity}
-        $activity = $this->route('activity') ?? $this->route('kegiatan');
-        
-        $activityId = $activity instanceof Activity ? $activity->id : $activity;
-        $morphClass = (new Activity)->getMorphClass();
-
         return [
-            'title' => ['required', 'string', 'max:255'],
-            'event_date' => ['required', 'date'],
-            'content' => ['nullable', 'string'],
-            'cover' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
-            'status' => ['required', Rule::enum(PublishStatus::class)],
-            'images' => ['nullable', 'array'],
-            'images.*' => ['image', 'mimes:jpeg,png,webp', 'max:2048'],
-            'remove_gallery_ids' => ['nullable', 'array'],
-            
-            // Validasi: pastikan ID galeri terhubung dengan kegiatan ini
-            'remove_gallery_ids.*' => [
-                'integer',
-                Rule::exists('galleries', 'id')->where(function ($query) use ($activityId, $morphClass) {
-                    return $query->where('galleryable_id', $activityId)
-                                 ->where('galleryable_type', $morphClass);
-                }),
+            'title'                => ['required', 'string', 'max:255'],
+            'event_date'           => ['required', 'date'],
+            'content'              => ['nullable', 'string'],
+            'cover'                => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'status'               => ['required', class_exists(PublishStatus::class) ? Rule::enum(PublishStatus::class) : 'string'],
+            'images'               => [
+                'nullable', 
+                'array', 
+                function ($attribute, $value, $fail) {
+                    $param = $this->route('kegiatan') ?? $this->route('activity') ?? collect($this->route()->parameters())->first();
+                    $activity = $param instanceof Activity ? $param : Activity::find($param);
+
+                    if ($activity) {
+                        $removeIds = $this->input('remove_gallery_ids', []);
+                        
+                        $existingCount = $activity->galleries()
+                            ->whereNotIn('id', (array) $removeIds)
+                            ->count();
+
+                        $newCount = is_array($value) ? count(array_filter($value)) : 0;
+
+                        if (($existingCount + $newCount) > 5) {
+                            $fail("Foto galeri pendukung tidak boleh lebih dari 5 foto. (Saat ini tersimpan: {$existingCount}, diunggah baru: {$newCount}).");
+                        }
+                    }
+                }
             ],
+            'images.*'             => ['image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'remove_gallery_ids'   => ['nullable', 'array'],
+            'remove_gallery_ids.*' => ['integer', 'exists:galleries,id'],
         ];
-    }
-
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function (Validator $validator) {
-            $activity = $this->route('activity') ?? $this->route('kegiatan');
-
-            if (! $activity) {
-                return;
-            }
-
-            if (! $activity instanceof Activity) {
-                $activity = Activity::find($activity);
-            }
-
-            if (! $activity) {
-                return;
-            }
-
-            $removeIds = $this->input('remove_gallery_ids', []);
-            $existingCount = $activity->galleries()
-                ->whereNotIn('id', $removeIds)
-                ->count();
-            $newCount = count(array_filter($this->file('images', []) ?? []));
-
-            if (($existingCount + $newCount) > 8) {
-                $validator->errors()->add('images', 'Total gambar galeri (gambar tersisa + gambar baru) tidak boleh lebih dari 8.');
-            }
-        });
     }
 
     public function messages(): array
     {
         return [
-            'title.required' => 'Judul kegiatan wajib diisi.',
+            'title.required'      => 'Judul kegiatan wajib diisi.',
+            'title.max'           => 'Judul kegiatan maksimal 255 karakter.',
             'event_date.required' => 'Tanggal kegiatan wajib diisi.',
-            'event_date.date' => 'Format tanggal tidak valid.',
-            'status.required' => 'Status publikasi wajib dipilih.',
-            'cover.image' => 'Cover harus berupa gambar.',
-            'cover.mimes' => 'Format cover harus JPEG, PNG, atau WebP.',
-            'cover.max' => 'Ukuran cover tidak boleh melebihi 2 MB.',
-            'images.*.image' => 'File yang diunggah harus berupa gambar.',
-            'images.*.mimes' => 'Format gambar galeri harus JPEG, PNG, atau WebP.',
-            'images.*.max' => 'Ukuran masing-masing gambar galeri tidak boleh melebihi 2 MB.',
-            'remove_gallery_ids.*.exists' => 'Gambar galeri yang dipilih untuk dihapus tidak valid.',
+            'event_date.date'     => 'Format tanggal kegiatan tidak valid.',
+            'cover.image'         => 'Cover kegiatan harus berupa file gambar.',
+            'cover.mimes'         => 'Format cover harus berupa jpg, jpeg, png, atau webp.',
+            'cover.max'           => 'Ukuran cover maksimal 10 MB.',
+            'status.required'     => 'Status publikasi wajib dipilih.',
+            'status.enum'         => 'Status publikasi tidak valid.',
+            'images.max'          => 'Jumlah foto galeri pendukung maksimal 5 foto.',
+            'images.*.image'      => 'Setiap foto galeri harus berupa file gambar.',
+            'images.*.max'        => 'Ukuran setiap foto galeri maksimal 10 MB.',
         ];
     }
 }

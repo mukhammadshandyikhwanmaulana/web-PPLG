@@ -13,27 +13,26 @@ use App\Models\StudentWork;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class StudentWorkController extends Controller
 {
-    protected function authorizeAdmin(): void
-    {
-        abort_unless(auth()->user()?->hasRole('admin'), 403);
-    }
-
     public function index(Request $request): View
     {
-        $this->authorizeAdmin();
-
-        $query = StudentWork::query()
-            ->with(['supervisor', 'galleries.media']);
+        $query = StudentWork::query()->with([
+            'supervisor', 
+            'cover', 
+            'galleries' => function ($q) {
+                $q->where('is_cover', false)->with('media');
+            }
+        ]);
 
         if ($search = trim((string) $request->query('search'))) {
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('contributor_name', 'like', "%{$search}%");
+                  ->orWhere('contributor_name', 'like', "%{$search}%");
             });
         }
 
@@ -57,12 +56,9 @@ class StudentWorkController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $supervisors = StaffMember::where(function ($q) use ($supervisorId) {
-                $q->where('is_active', true);
-                if ($supervisorId) {
-                    $q->orWhere('id', $supervisorId);
-                }
-            })
+        $supervisors = StaffMember::query()
+            ->when(method_exists(StaffMember::class, 'scopeActive'), fn($q) => $q->active(), fn($q) => $q->where('is_active', true))
+            ->when($supervisorId, fn($q) => $q->orWhere('id', $supervisorId))
             ->orderBy('name')
             ->get();
 
@@ -71,170 +67,294 @@ class StudentWorkController extends Controller
 
     public function create(): View
     {
-        $this->authorizeAdmin();
+        $supervisors = StaffMember::query()
+            ->when(method_exists(StaffMember::class, 'scopeActive'), fn($q) => $q->active(), fn($q) => $q->where('is_active', true))
+            ->orderBy('name')
+            ->get();
 
-        $supervisors = StaffMember::where('is_active', true)->orderBy('name')->get();
+        $studentWork = new StudentWork(); 
 
-        return view('admin.karya-siswa.create', compact('supervisors'));
+        return view('admin.karya-siswa.create', compact('supervisors', 'studentWork'));
     }
 
     public function store(StoreStudentWorkRequest $request): RedirectResponse
     {
-        $this->authorizeAdmin();
-
         $data = $request->validated();
-        $mediaIds = $this->storeImages($request->file('images', []));
 
-        DB::transaction(function () use ($data, $mediaIds) {
-            $slug = $this->generateUniqueSlug($data['title']);
+        DB::transaction(function () use ($request, $data) {
+            $title = $data['title'];
+            $description = $data['description'] ?? null;
 
-            $publishedAt = null;
-            if ($data['status'] === PublishStatus::Published->value) {
-                $publishedAt = now();
+            $coverMediaId = $this->storeSingleImage($request->file('cover'), $title, $description, 'Cover');
+            $mediaIds = $this->storeImages($request->file('images', []), $title, $description);
+            $slug = $this->generateUniqueSlug($title);
+
+            if (! $coverMediaId && ! empty($mediaIds)) {
+                $coverMediaId = array_shift($mediaIds);
             }
 
+            $statusValue = $data['status'] instanceof PublishStatus 
+                ? $data['status']->value 
+                : ($data['status'] ?? PublishStatus::Draft->value);
+
+            $publishedAt = ($statusValue === PublishStatus::Published->value) ? now() : null;
+
             $studentWork = StudentWork::create([
-                'title' => $data['title'],
-                'slug' => $slug,
-                'description' => $data['description'] ?? null,
+                'title'            => $title,
+                'slug'             => $slug,
+                'description'      => $description,
                 'contributor_name' => $data['contributor_name'] ?? null,
-                'supervisor_id' => $data['supervisor_id'] ?? null,
-                'demo_url' => $data['demo_url'] ?? null,
-                'is_featured' => $data['is_featured'] ?? false,
-                'status' => $data['status'],
-                'published_at' => $publishedAt,
-                'created_by' => auth()->id(),
-                'updated_by' => auth()->id(),
+                'supervisor_id'    => $data['supervisor_id'] ?? null,
+                'demo_url'         => $data['demo_url'] ?? null,
+                'is_featured'      => $request->boolean('is_featured'),
+                'cover_media_id'   => $coverMediaId,
+                'status'           => $statusValue,
+                'published_at'     => $publishedAt,
+                'created_by'       => auth()->id(),
+                'updated_by'       => auth()->id(),
             ]);
+
+            $mediaIds = array_slice($mediaIds, 0, 5);
 
             foreach ($mediaIds as $index => $mediaId) {
                 Gallery::create([
-                    'media_id' => $mediaId,
-                    'galleryable_id' => $studentWork->id,
+                    'media_id'         => $mediaId,
+                    'galleryable_id'   => $studentWork->id,
                     'galleryable_type' => StudentWork::class,
-                    'sort_order' => $index,
+                    'is_cover'         => false,
+                    'sort_order'       => $index + 1,
                 ]);
             }
         });
 
-        return redirect()
-            ->route('admin.karya-siswa.index')
-            ->with('success', 'Karya Siswa berhasil ditambahkan.');
+        return redirect()->route('admin.karya-siswa.index')->with('success', 'Karya Siswa berhasil ditambahkan.');
     }
 
-    public function edit(StudentWork $student_work): View
+    public function edit(StudentWork $studentWork): View
     {
-        $this->authorizeAdmin();
-
-        $student_work->load(['galleries.media']);
-
-        $supervisors = StaffMember::where(function ($q) use ($student_work) {
-                $q->where('is_active', true);
-                if ($student_work->supervisor_id) {
-                    $q->orWhere('id', $student_work->supervisor_id);
-                }
-            })
+        $studentWork->load(['cover', 'galleries.media']);
+        $supervisors = StaffMember::query()
+            ->when(method_exists(StaffMember::class, 'scopeActive'), fn($q) => $q->active(), fn($q) => $q->where('is_active', true))
+            ->when($studentWork->supervisor_id, fn($q) => $q->orWhere('id', $studentWork->supervisor_id))
             ->orderBy('name')
             ->get();
 
-        return view('admin.karya-siswa.edit', [
-            'studentWork' => $student_work,
-            'supervisors' => $supervisors,
-        ]);
+        return view('admin.karya-siswa.edit', compact('studentWork', 'supervisors'));
     }
 
-    public function update(UpdateStudentWorkRequest $request, StudentWork $student_work): RedirectResponse
+    public function update(UpdateStudentWorkRequest $request, StudentWork $studentWork): RedirectResponse
     {
-        $this->authorizeAdmin();
-
         $data = $request->validated();
-        $mediaIds = $this->storeImages($request->file('images', []));
         $removeIds = $data['remove_gallery_ids'] ?? [];
+        $filesToDelete = [];
 
-        DB::transaction(function () use ($data, $mediaIds, $removeIds, $student_work) {
-            $slug = $student_work->slug;
-            if (Str::slug($data['title']) !== Str::slug($student_work->title)) {
-                $slug = $this->generateUniqueSlug($data['title'], $student_work->id);
+        DB::transaction(function () use ($request, $data, $removeIds, $studentWork, &$filesToDelete) {
+            $title = $data['title'];
+            $description = $data['description'] ?? null;
+
+            $newCoverMediaId = $this->storeSingleImage($request->file('cover'), $title, $description, 'Cover');
+            $mediaIds = $this->storeImages($request->file('images', []), $title, $description);
+
+            $slug = $studentWork->slug;
+            if (Str::slug($title) !== Str::slug($studentWork->title)) {
+                $slug = $this->generateUniqueSlug($title, $studentWork->id);
             }
 
-            $publishedAt = $student_work->published_at;
-            if ($data['status'] === PublishStatus::Published->value && $publishedAt === null) {
+            $statusValue = $data['status'] instanceof PublishStatus 
+                ? $data['status']->value 
+                : ($data['status'] ?? (is_object($studentWork->status) ? $studentWork->status->value : $studentWork->status));
+
+            $publishedAt = $studentWork->published_at;
+            if ($statusValue === PublishStatus::Published->value && $publishedAt === null) {
                 $publishedAt = now();
             }
 
-            $student_work->update([
-                'title' => $data['title'],
-                'slug' => $slug,
-                'description' => $data['description'] ?? null,
+            $updateData = [
+                'title'            => $title,
+                'slug'             => $slug,
+                'description'      => $description,
                 'contributor_name' => $data['contributor_name'] ?? null,
-                'supervisor_id' => $data['supervisor_id'] ?? null,
-                'demo_url' => $data['demo_url'] ?? null,
-                'is_featured' => $data['is_featured'] ?? false,
-                'status' => $data['status'],
-                'published_at' => $publishedAt,
-                'updated_by' => auth()->id(),
-            ]);
+                'supervisor_id'    => $data['supervisor_id'] ?? null,
+                'demo_url'         => $data['demo_url'] ?? null,
+                'is_featured'      => $request->boolean('is_featured'),
+                'status'           => $statusValue,
+                'published_at'     => $publishedAt,
+                'updated_by'       => auth()->id(),
+            ];
 
-            $this->syncGalleries($student_work, $mediaIds, $removeIds);
+            if ($newCoverMediaId) {
+                if ($studentWork->cover_media_id) {
+                    $oldMedia = Media::find($studentWork->cover_media_id);
+                    if ($oldMedia) {
+                        $filesToDelete[] = ['disk' => $oldMedia->disk, 'path' => $oldMedia->path];
+                        $oldMedia->forceDelete();
+                    }
+                }
+                $updateData['cover_media_id'] = $newCoverMediaId;
+            }
+
+            $studentWork->update($updateData);
+
+            $this->syncGalleries($studentWork, $mediaIds, $removeIds, $filesToDelete);
+
+            if (! $studentWork->cover_media_id && $studentWork->galleries()->exists()) {
+                $firstGallery = $studentWork->galleries()->first();
+                if ($firstGallery && $firstGallery->media_id) {
+                    $studentWork->update(['cover_media_id' => $firstGallery->media_id]);
+                    $firstGallery->delete();
+                }
+            }
+
+            $this->updateExistingMediaAltText($studentWork, $title, $description);
         });
 
-        return redirect()
-            ->route('admin.karya-siswa.index')
-            ->with('success', 'Karya Siswa berhasil diperbarui.');
-    }
-
-    public function destroy(StudentWork $student_work): RedirectResponse
-    {
-        $this->authorizeAdmin();
-
-        $student_work->delete();
-
-        return redirect()
-            ->route('admin.karya-siswa.index')
-            ->with('success', 'Karya Siswa berhasil dihapus.');
-    }
-
-    protected function storeImages(array $images): array
-    {
-        $mediaIds = [];
-
-        foreach (array_filter($images) as $image) {
-            $path = $image->store('student-works', 'public');
-
-            $media = Media::create([
-                'file_name' => $image->getClientOriginalName(),
-                'file_path' => $path,
-                'mime_type' => $image->getClientMimeType(),
-                'size' => $image->getSize(),
-                'uploaded_by' => auth()->id(),
-            ]);
-
-            $mediaIds[] = $media->id;
+        foreach ($filesToDelete as $file) {
+            if (!empty($file['path'])) {
+                Storage::disk($file['disk'] ?? 'public')->delete($file['path']);
+            }
         }
 
+        return redirect()->route('admin.karya-siswa.index')->with('success', 'Karya Siswa berhasil diperbarui.');
+    }
+
+    public function destroy(StudentWork $studentWork): RedirectResponse
+    {
+        $filesToDelete = [];
+
+        DB::transaction(function () use ($studentWork, &$filesToDelete) {
+            $studentWork->load(['galleries.media', 'cover']);
+
+            if ($studentWork->cover) {
+                $filesToDelete[] = ['disk' => $studentWork->cover->disk, 'path' => $studentWork->cover->path];
+                $studentWork->cover->forceDelete();
+            }
+
+            foreach ($studentWork->galleries as $gallery) {
+                if ($gallery->media) {
+                    $filesToDelete[] = ['disk' => $gallery->media->disk, 'path' => $gallery->media->path];
+                    $gallery->media->forceDelete();
+                }
+                $gallery->delete();
+            }
+
+            $studentWork->forceDelete();
+        });
+
+        foreach ($filesToDelete as $file) {
+            if (!empty($file['path'])) {
+                Storage::disk($file['disk'] ?? 'public')->delete($file['path']);
+            }
+        }
+
+        return redirect()->route('admin.karya-siswa.index')->with('success', 'Karya Siswa berhasil dihapus permanen.');
+    }
+
+    protected function storeSingleImage($image, string $title, ?string $description = null, string $suffix = ''): ?int
+    {
+        if (! $image) return null;
+        $path = $image->store('student-works/covers', 'public');
+        $media = Media::create([
+            'original_name' => $image->getClientOriginalName(),
+            'file_name'     => basename($path),
+            'disk'          => 'public',
+            'path'          => $path,
+            'mime_type'     => $image->getClientMimeType(),
+            'size'          => $image->getSize(),
+            'alt_text'      => $this->formatAltText($description, $title, $suffix),
+            'created_by'    => auth()->id(),
+        ]);
+        return $media->id;
+    }
+
+    protected function storeImages(array $images, string $title, ?string $description = null): array
+    {
+        $mediaIds = [];
+        foreach (array_filter($images) as $index => $image) {
+            $path = $image->store('student-works/galleries', 'public');
+            $media = Media::create([
+                'original_name' => $image->getClientOriginalName(),
+                'file_name'     => basename($path),
+                'disk'          => 'public',
+                'path'          => $path,
+                'mime_type'     => $image->getClientMimeType(),
+                'size'          => $image->getSize(),
+                'alt_text'      => $this->formatAltText($description, $title, "Galeri " . ($index + 1)),
+                'created_by'    => auth()->id(),
+            ]);
+            $mediaIds[] = $media->id;
+        }
         return $mediaIds;
     }
 
-    protected function syncGalleries(StudentWork $studentWork, array $newMediaIds, array $removeIds): void
+    protected function syncGalleries(StudentWork $studentWork, array $newMediaIds, array $removeGalleryIds, array &$filesToDelete = []): void
     {
-        if (! empty($removeIds)) {
-            $studentWork->galleries()
-                ->whereIn('id', $removeIds)
-                ->delete();
+        if (! empty($removeGalleryIds)) {
+            $galleriesToRemove = $studentWork->galleries()
+                ->whereIn('id', $removeGalleryIds)
+                ->with('media')
+                ->get();
+
+            foreach ($galleriesToRemove as $gallery) {
+                if ($gallery->media) {
+                    $filesToDelete[] = ['disk' => $gallery->media->disk, 'path' => $gallery->media->path];
+                    $gallery->media->forceDelete();
+                }
+                $gallery->delete();
+            }
         }
 
-        $nextOrder = $studentWork->galleries()->max('sort_order');
-        $nextOrder = $nextOrder === null ? 0 : $nextOrder + 1;
+        $nextOrder = (int) ($studentWork->galleries()->max('sort_order') ?? 0);
+        $nextOrder++;
 
         foreach ($newMediaIds as $mediaId) {
             Gallery::create([
-                'media_id' => $mediaId,
-                'galleryable_id' => $studentWork->id,
+                'media_id'         => $mediaId,
+                'galleryable_id'   => $studentWork->id,
                 'galleryable_type' => StudentWork::class,
-                'sort_order' => $nextOrder,
+                'is_cover'         => false,
+                'sort_order'       => $nextOrder,
             ]);
             $nextOrder++;
         }
+
+        $allGalleries = $studentWork->galleries()->orderBy('sort_order')->get();
+        if ($allGalleries->count() > 5) {
+            $excessGalleries = $allGalleries->slice(5);
+            foreach ($excessGalleries as $extra) {
+                if ($extra->media) {
+                    $filesToDelete[] = ['disk' => $extra->media->disk, 'path' => $extra->media->path];
+                    $extra->media->forceDelete();
+                }
+                $extra->delete();
+            }
+        }
+    }
+
+    protected function updateExistingMediaAltText(StudentWork $studentWork, string $title, ?string $description): void
+    {
+        $studentWork->load(['cover', 'galleries.media']);
+        if ($studentWork->cover) {
+            $studentWork->cover->update([
+                'alt_text'   => $this->formatAltText($description, $title, 'Cover'),
+                'updated_by' => auth()->id(),
+            ]);
+        }
+        foreach ($studentWork->galleries as $index => $gallery) {
+            if ($gallery->media) {
+                $gallery->media->update([
+                    'alt_text'   => $this->formatAltText($description, $title, "Galeri " . ($index + 1)),
+                    'updated_by' => auth()->id(),
+                ]);
+            }
+        }
+    }
+
+    protected function formatAltText(?string $description, string $title, string $suffix = ''): string
+    {
+        $cleanDesc = $description ? trim(strip_tags($description)) : '';
+        $baseText = $cleanDesc !== '' ? $cleanDesc : $title;
+        if ($suffix !== '') $baseText .= " ({$suffix})";
+        return Str::limit($baseText, 250);
     }
 
     protected function generateUniqueSlug(string $title, ?int $ignoreId = null): string
@@ -242,17 +362,12 @@ class StudentWorkController extends Controller
         $baseSlug = Str::slug($title);
         $slug = $baseSlug;
         $suffix = 1;
-
         while (
-            StudentWork::withTrashed()
-                ->where('slug', $slug)
-                ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
-                ->exists()
+            StudentWork::withTrashed()->where('slug', $slug)->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))->exists()
         ) {
             $slug = "{$baseSlug}-{$suffix}";
             $suffix++;
         }
-
         return $slug;
     }
 }

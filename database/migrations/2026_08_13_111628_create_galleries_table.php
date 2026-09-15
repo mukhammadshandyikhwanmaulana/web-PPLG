@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('media_id')->constrained('media')->cascadeOnDelete();
             $table->morphs('galleryable');
+            $table->boolean('is_cover')->default(false);
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
         });

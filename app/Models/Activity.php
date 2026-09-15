@@ -3,34 +3,92 @@
 namespace App\Models;
 
 use App\Enums\PublishStatus;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
+use App\Notifications\AdminActivityNotification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['title', 'slug', 'event_date', 'content', 'cover_media_id', 'status', 'published_at', 'created_by', 'updated_by'])]
 class Activity extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'activities';
+
+    protected $fillable = [
+        'user_id',
+        'title',
+        'slug',
+        'event_date',
+        'content',
+        'cover_media_id',
+        'status',
+        'published_at',
+        'created_by',
+        'updated_by',
+    ];
+
     protected function casts(): array
     {
         return [
-            'event_date' => 'date',
-            'published_at' => 'datetime',
-            'status' => PublishStatus::class,
+            'event_date'     => 'date',
+            'published_at'   => 'datetime',
+            'status'         => class_exists(PublishStatus::class) ? PublishStatus::class : 'string',
+            'user_id'        => 'integer',
+            'cover_media_id' => 'integer',
+            'created_by'     => 'integer',
+            'updated_by'     => 'integer',
         ];
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Relations
-    |--------------------------------------------------------------------------
-    */
+    protected static function booted(): void
+    {
+        if (app()->runningInConsole() || ! auth()->check()) {
+            return;
+        }
+
+        static::created(function (Activity $activity) {
+            static::sendAdminNotification('created', $activity);
+        });
+
+        static::updated(function (Activity $activity) {
+            static::sendAdminNotification('updated', $activity);
+        });
+
+        static::deleted(function (Activity $activity) {
+            static::sendAdminNotification('deleted', $activity);
+        });
+    }
+
+    protected static function sendAdminNotification(string $action, Activity $activity): void
+    {
+        $actor = auth()->user();
+        if (! $actor) return;
+
+        $admins = User::query()->admin()->active()->get();
+        if ($admins->isEmpty()) return;
+
+        $url = \Illuminate\Support\Facades\Route::has('admin.kegiatan.index') 
+            ? route('admin.kegiatan.index') 
+            : null;
+
+        Notification::send($admins, new AdminActivityNotification(
+            actor: $actor,
+            action: $action,
+            subjectType: 'Kegiatan',
+            subjectName: $activity->title,
+            subjectUrl: $action === 'deleted' ? null : $url
+        ));
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
     public function cover(): BelongsTo
     {
@@ -52,33 +110,27 @@ class Activity extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Accessors & Helpers
-    |--------------------------------------------------------------------------
-    */
-
-    /**
-     * Mendapatkan URL gambar cover (atau null jika tidak ada)
-     */
     public function getCoverUrlAttribute(): ?string
     {
-        if ($this->cover && $this->cover->file_path) {
-            return Storage::url($this->cover->file_path);
+        $coverMedia = $this->relationLoaded('cover') ? $this->cover : $this->cover()->first();
+        if ($coverMedia && ! empty($coverMedia->path)) {
+            return Storage::disk($coverMedia->disk ?? 'public')->url($coverMedia->path);
+        }
+
+        if ($this->relationLoaded('galleries') && $this->galleries->isNotEmpty()) {
+            $firstGallery = $this->galleries->first();
+            if ($firstGallery && $firstGallery->media && ! empty($firstGallery->media->path)) {
+                return Storage::disk($firstGallery->media->disk ?? 'public')->url($firstGallery->media->path);
+            }
         }
 
         return null;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Scopes
-    |--------------------------------------------------------------------------
-    */
-
     public function scopePublished(Builder $query): Builder
     {
-        return $query->where('status', PublishStatus::Published);
+        $publishedValue = class_exists(PublishStatus::class) ? PublishStatus::Published : 'published';
+        return $query->where('status', $publishedValue);
     }
 
     public function scopeLatest6(Builder $query): Builder

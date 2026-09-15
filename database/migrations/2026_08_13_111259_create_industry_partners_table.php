@@ -11,7 +11,10 @@ return new class extends Migration
         Schema::create('industry_partners', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->foreignId('logo_media_id')->nullable()->constrained('media')->restrictOnDelete();
+            $table->foreignId('logo_media_id')
+                ->nullable()
+                ->constrained('media')
+                ->nullOnDelete();
             $table->string('website_url')->nullable();
             $table->unsignedInteger('sort_order')->default(0);
             $table->string('status')->default('draft');
@@ -22,6 +25,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['status', 'published_at']);
+            $table->index(['status', 'sort_order']);
+            $table->index('name');
         });
     }
 

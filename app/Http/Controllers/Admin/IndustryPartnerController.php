@@ -11,6 +11,7 @@ use App\Models\Media;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class IndustryPartnerController extends Controller
@@ -34,32 +35,26 @@ class IndustryPartnerController extends Controller
         return view('admin.mitra.index', compact('partners'));
     }
 
-    public function create(): View
-    {
-        return view('admin.mitra.create');
-    }
+    public function create(): View { return view('admin.mitra.create'); }
 
     public function store(StoreIndustryPartnerRequest $request): RedirectResponse
     {
         $data = $request->validated();
-
         DB::transaction(function () use ($request, $data) {
             $mediaId = $this->storeLogoIfPresent($request);
-            $status = PublishStatus::from($data['status']);
-
-            // Jika sort_order tidak diisi, gunakan nilai max + 1 tanpa menggeser record lain
-            $sortOrder = (isset($data['sort_order']) && $data['sort_order'] !== null && $data['sort_order'] !== '')
-                ? (int) $data['sort_order']
-                : (IndustryPartner::max('sort_order') ?? 0) + 1;
+            $rawStatus = $data['status'] ?? '';
+            $status = $rawStatus instanceof PublishStatus ? $rawStatus : (PublishStatus::tryFrom((string)$rawStatus) ?? PublishStatus::Draft);
+            $sortOrder = (isset($data['sort_order']) && $data['sort_order'] !== null && $data['sort_order'] !== '') ? (int) $data['sort_order'] : (IndustryPartner::max('sort_order') ?? 0) + 1;
 
             IndustryPartner::create([
-                'name' => $data['name'],
-                'website_url' => $data['website_url'] ?? null,
+                'name'          => $data['name'],
+                'website_url'   => $data['website_url'] ?? null,
                 'logo_media_id' => $mediaId,
-                'sort_order' => $sortOrder,
-                'status' => $status,
-                'published_at' => $status === PublishStatus::Published ? now() : null,
-                'created_by' => auth()->id(),
+                'sort_order'    => $sortOrder,
+                'status'        => $status,
+                'published_at'  => $status === PublishStatus::Published ? now() : null,
+                'created_by'    => auth()->id(),
+                'updated_by'    => auth()->id(),
             ]);
         });
 
@@ -67,86 +62,98 @@ class IndustryPartnerController extends Controller
         if (empty($data['website_url'])) {
             $message .= ' (Catatan: Disarankan melengkapi link website agar pengunjung web sekolah bisa langsung menuju profil resmi mitra).';
         }
-
-        return redirect()
-            ->route('admin.mitra.index')
-            ->with('success', $message);
+        return redirect()->route('admin.mitra.index')->with('success', $message);
     }
 
-    public function edit(IndustryPartner $industry_partner): View
+    public function edit(IndustryPartner $industryPartner): View
     {
-        $industry_partner->loadMissing('logo');
-
-        return view('admin.mitra.edit', ['partner' => $industry_partner]);
+        $industryPartner->loadMissing('logo');
+        return view('admin.mitra.edit', ['partner' => $industryPartner]);
     }
 
-    public function update(UpdateIndustryPartnerRequest $request, IndustryPartner $industry_partner): RedirectResponse
+    public function update(UpdateIndustryPartnerRequest $request, IndustryPartner $industryPartner): RedirectResponse
     {
         $data = $request->validated();
+        $filesToDelete = [];
 
-        DB::transaction(function () use ($request, $industry_partner, $data) {
+        DB::transaction(function () use ($request, $industryPartner, $data, &$filesToDelete) {
             $newMediaId = $this->storeLogoIfPresent($request);
-            $status = PublishStatus::from($data['status']);
-
-            $sortOrder = (isset($data['sort_order']) && $data['sort_order'] !== null && $data['sort_order'] !== '')
-                ? (int) $data['sort_order']
-                : $industry_partner->sort_order;
+            $rawStatus = $data['status'] ?? '';
+            $status = $rawStatus instanceof PublishStatus ? $rawStatus : (PublishStatus::tryFrom((string)$rawStatus) ?? $industryPartner->status);
+            $sortOrder = (isset($data['sort_order']) && $data['sort_order'] !== null && $data['sort_order'] !== '') ? (int) $data['sort_order'] : $industryPartner->sort_order;
 
             $updateData = [
-                'name' => $data['name'],
+                'name'        => $data['name'],
                 'website_url' => $data['website_url'] ?? null,
-                'sort_order' => $sortOrder,
-                'status' => $status,
-                'updated_by' => auth()->id(),
+                'sort_order'  => $sortOrder,
+                'status'      => $status,
+                'updated_by'  => auth()->id(),
             ];
 
-            if ($status === PublishStatus::Published && $industry_partner->published_at === null) {
+            if ($status === PublishStatus::Published && $industryPartner->published_at === null) {
                 $updateData['published_at'] = now();
             }
 
             if ($newMediaId !== null) {
+                if ($industryPartner->logo_media_id) {
+                    $oldMedia = Media::find($industryPartner->logo_media_id);
+                    if ($oldMedia) {
+                        $filesToDelete[] = ['disk' => $oldMedia->disk, 'path' => $oldMedia->path];
+                        $oldMedia->forceDelete();
+                    }
+                }
                 $updateData['logo_media_id'] = $newMediaId;
             }
 
-            $industry_partner->update($updateData);
+            $industryPartner->update($updateData);
         });
+
+        foreach ($filesToDelete as $file) {
+            Storage::disk($file['disk'] ?? 'public')->delete($file['path']);
+        }
 
         $message = 'Mitra berhasil diperbarui.';
         if (empty($data['website_url'])) {
             $message .= ' (Catatan: Disarankan melengkapi link website agar pengunjung web sekolah bisa langsung menuju profil resmi mitra).';
         }
 
-        return redirect()
-            ->route('admin.mitra.index')
-            ->with('success', $message);
+        return redirect()->route('admin.mitra.index')->with('success', $message);
     }
 
-    public function destroy(IndustryPartner $industry_partner): RedirectResponse
+    public function destroy(IndustryPartner $industryPartner): RedirectResponse
     {
-        $industry_partner->delete();
+        $filesToDelete = [];
 
-        return redirect()
-            ->route('admin.mitra.index')
-            ->with('success', 'Mitra berhasil dihapus.');
+        DB::transaction(function () use ($industryPartner, &$filesToDelete) {
+            if ($industryPartner->logo) {
+                $filesToDelete[] = ['disk' => $industryPartner->logo->disk, 'path' => $industryPartner->logo->path];
+                $industryPartner->logo->forceDelete();
+            }
+            
+            $industryPartner->forceDelete();
+        });
+
+        foreach ($filesToDelete as $file) {
+            Storage::disk($file['disk'] ?? 'public')->delete($file['path']);
+        }
+
+        return redirect()->route('admin.mitra.index')->with('success', 'Mitra berhasil dihapus beserta logonya.');
     }
 
     protected function storeLogoIfPresent(Request $request): ?int
     {
-        if (! $request->hasFile('logo')) {
-            return null;
-        }
-
+        if (! $request->hasFile('logo')) return null;
         $file = $request->file('logo');
         $path = $file->store('mitra', 'public');
-
         $media = Media::create([
-            'file_name' => $file->getClientOriginalName(),
-            'file_path' => $path,
-            'mime_type' => $file->getClientMimeType(),
-            'size' => $file->getSize(),
-            'uploaded_by' => auth()->id(),
+            'original_name' => $file->getClientOriginalName(),
+            'file_name'     => $file->hashName(),
+            'path'          => $path,
+            'disk'          => 'public',
+            'mime_type'     => $file->getClientMimeType(),
+            'size'          => $file->getSize(),
+            'created_by'    => auth()->id(),
         ]);
-
         return $media->id;
     }
 }

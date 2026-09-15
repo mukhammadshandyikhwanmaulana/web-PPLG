@@ -12,12 +12,18 @@ class MediaFactory extends Factory
 
     public function definition(): array
     {
+        $fileName = 'unique-' . fake()->unique()->uuid() . '.jpg';
+
         return [
-            'file_name'   => $this->faker->word() . '.jpg',
-            'file_path'   => 'uploads/' . $this->faker->uuid() . '.jpg',
-            'mime_type'   => 'image/jpeg',
-            'size'        => 1024,
-            'uploaded_by' => User::factory(),
+            'original_name' => 'example.jpg',
+            'file_name'     => $fileName,
+            'disk'          => 'public',
+            'path'          => 'media/' . $fileName,
+            'mime_type'     => 'image/jpeg',
+            'size'          => fake()->numberBetween(10_000, 500_000),
+            'alt_text'      => 'Example image',
+            'created_by'    => User::factory(),
+            'updated_by'    => User::factory(),
         ];
     }
 }

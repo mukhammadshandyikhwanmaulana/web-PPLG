@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class FacilityController extends Controller
@@ -19,7 +20,11 @@ class FacilityController extends Controller
     {
         $facilities = Facility::with('photo')
             ->when($request->filled('search'), function ($query) use ($request) {
-                $query->where('name', 'like', '%'.$request->input('search').'%');
+                $search = $request->input('search');
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
             })
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -29,9 +34,9 @@ class FacilityController extends Controller
         return view('admin.fasilitas.index', compact('facilities'));
     }
 
-    public function create(): View
-    {
-        return view('admin.fasilitas.create');
+    public function create(): View 
+    { 
+        return view('admin.fasilitas.create'); 
     }
 
     public function store(StoreFacilityRequest $request): RedirectResponse
@@ -40,13 +45,20 @@ class FacilityController extends Controller
 
         DB::transaction(function () use ($request, $data) {
             $mediaId = $this->storePhotoIfPresent($request);
+            if (isset($data['sort_order']) && $data['sort_order'] > 0) {
+                Facility::where('sort_order', '>=', $data['sort_order'])->lockForUpdate()->increment('sort_order');
+                $sortOrder = (int) $data['sort_order'];
+            } else {
+                $sortOrder = (Facility::max('sort_order') ?? 0) + 1;
+            }
 
             Facility::create([
-                'name' => $data['name'],
-                'description' => $data['description'] ?? null,
+                'name'           => $data['name'],
+                'description'    => $data['description'] ?? null,
                 'photo_media_id' => $mediaId,
-                'sort_order' => $data['sort_order'] ?? 0,
-                'created_by' => auth()->id(),
+                'sort_order'     => $sortOrder,
+                'created_by'     => auth()->id(),
+                'updated_by'     => auth()->id(),
             ]);
         });
 
@@ -56,63 +68,113 @@ class FacilityController extends Controller
     public function edit(Facility $facility): View
     {
         $facility->loadMissing('photo');
-
         return view('admin.fasilitas.edit', compact('facility'));
     }
 
     public function update(UpdateFacilityRequest $request, Facility $facility): RedirectResponse
     {
         $data = $request->validated();
+        $oldPhoto = null;
 
-        DB::transaction(function () use ($request, $facility, $data) {
+        DB::transaction(function () use ($request, $facility, $data, &$oldPhoto) {
             $mediaId = $this->storePhotoIfPresent($request);
+            $oldSortOrder = (int) ($facility->sort_order ?? 0);
+            $newSortOrder = (isset($data['sort_order']) && $data['sort_order'] > 0) ? (int) $data['sort_order'] : $oldSortOrder;
+
+            if ($oldSortOrder > 0 && $newSortOrder !== $oldSortOrder && $newSortOrder > 0) {
+                if ($newSortOrder < $oldSortOrder) {
+                    Facility::where('id', '!=', $facility->id)->where('sort_order', '>=', $newSortOrder)->where('sort_order', '<', $oldSortOrder)->lockForUpdate()->increment('sort_order');
+                } else {
+                    Facility::where('id', '!=', $facility->id)->where('sort_order', '>', $oldSortOrder)->where('sort_order', '<=', $newSortOrder)->lockForUpdate()->decrement('sort_order');
+                }
+            } elseif ($oldSortOrder === 0 && $newSortOrder > 0) {
+                Facility::where('id', '!=', $facility->id)->where('sort_order', '>=', $newSortOrder)->lockForUpdate()->increment('sort_order');
+            }
 
             $updateData = [
-                'name' => $data['name'],
+                'name'        => $data['name'],
                 'description' => $data['description'] ?? null,
-                'sort_order' => $data['sort_order'] ?? $facility->sort_order,
-                'updated_by' => auth()->id(),
+                'sort_order'  => $newSortOrder > 0 ? $newSortOrder : ((Facility::max('sort_order') ?? 0) + 1),
+                'updated_by'  => auth()->id(),
             ];
 
             if ($mediaId !== null) {
-                // Hapus media & berkas fisik lama
-                if ($facility->photo) {
-                    Storage::disk('public')->delete($facility->photo->file_path);
-                    $facility->photo()->delete();
+                if ($facility->photo_media_id) {
+                    $oldPhoto = Media::find($facility->photo_media_id);
                 }
                 $updateData['photo_media_id'] = $mediaId;
+            } else {
+                if ($facility->photo_media_id) {
+                    $altText = $this->formatAltText($data['description'] ?? null, $data['name']);
+                    Media::where('id', $facility->photo_media_id)->update([
+                        'alt_text'   => $altText,
+                        'updated_by' => auth()->id(),
+                    ]);
+                }
             }
 
             $facility->update($updateData);
         });
+
+        if ($oldPhoto) {
+            $isUsedElsewhere = Facility::where('photo_media_id', $oldPhoto->id)->where('id', '!=', $facility->id)->exists();
+            if (!$isUsedElsewhere) {
+                Storage::disk($oldPhoto->disk ?? 'public')->delete($oldPhoto->path);
+                $oldPhoto->forceDelete();
+            }
+        }
 
         return redirect()->route('admin.fasilitas.index')->with('success', 'Fasilitas berhasil diperbarui.');
     }
 
     public function destroy(Facility $facility): RedirectResponse
     {
-        $facility->delete();
+        $oldPhoto = null;
+
+        DB::transaction(function () use ($facility, &$oldPhoto) {
+            $deletedOrder = (int) ($facility->sort_order ?? 0);
+            if ($facility->photo_media_id) {
+                 $oldPhoto = Media::find($facility->photo_media_id);
+            }
+            $facility->forceDelete();
+
+            if ($deletedOrder > 0) {
+                Facility::where('sort_order', '>', $deletedOrder)->decrement('sort_order');
+            }
+        });
+
+        if ($oldPhoto) {
+             $isUsedElsewhere = Facility::where('photo_media_id', $oldPhoto->id)->exists();
+             if (!$isUsedElsewhere) {
+                 Storage::disk($oldPhoto->disk ?? 'public')->delete($oldPhoto->path);
+                 $oldPhoto->forceDelete();
+             }
+        }
 
         return redirect()->route('admin.fasilitas.index')->with('success', 'Fasilitas berhasil dihapus.');
     }
 
-    protected function storePhotoIfPresent(StoreFacilityRequest|UpdateFacilityRequest $request): ?int
+    protected function storePhotoIfPresent(Request $request): ?int
     {
-        if (!$request->hasFile('photo')) {
-            return null;
-        }
-
+        if (! $request->hasFile('photo')) return null;
         $file = $request->file('photo');
         $path = $file->store('facilities', 'public');
-
         $media = Media::create([
-            'file_name' => basename($path),
-            'file_path' => $path,
-            'mime_type' => $file->getClientMimeType(),
-            'size' => $file->getSize(),
-            'uploaded_by' => auth()->id(),
+            'original_name' => $file->getClientOriginalName(),
+            'file_name'     => basename($path),
+            'disk'          => 'public',
+            'path'          => $path,
+            'mime_type'     => $file->getClientMimeType(),
+            'size'          => $file->getSize(),
+            'alt_text'      => $this->formatAltText($request->input('description'), $request->input('name')),
+            'created_by'    => auth()->id(),
         ]);
-
         return $media->id;
+    }
+
+    protected function formatAltText(?string $description, string $name): string
+    {
+        $cleanDesc = $description ? trim(strip_tags($description)) : '';
+        return $cleanDesc !== '' ? Str::limit($cleanDesc, 250) : Str::limit($name, 250);
     }
 }
