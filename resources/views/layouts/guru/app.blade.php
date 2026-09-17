@@ -8,15 +8,16 @@
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
-    <!-- Cropper.js CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <!-- Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" integrity="sha512-hvNR0F/e2J7zPPfLC9auFe3/SE0yG4aJCOd/qxew74NN7eyiSKjr7xJJMu1Jy2wf7FXITpWS1E/RY8yzuXN7VA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
         [x-cloak] { display: none !important; }
         .no-scrollbar::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
         .no-scrollbar { -ms-overflow-style: none !important; scrollbar-width: none !important; }
     </style>
+
+    @stack('styles')
 </head>
 <body class="h-full bg-slate-50 font-sans text-slate-900 antialiased overflow-hidden" 
       x-data="{ sidebarOpen: false }"
@@ -24,19 +25,12 @@
     
     @php
         $user = auth()->user();
-        $userAvatar = null;
-        if ($user) {
-            if (isset($user->avatar_url)) {
-                $userAvatar = $user->avatar_url;
-            } elseif ($user->avatar) {
-                $userAvatar = \Illuminate\Support\Facades\Storage::disk('public')->url($user->avatar);
-            }
-        }
+        $userAvatar = $user?->avatar_url ?? ($user?->avatar ? \Illuminate\Support\Facades\Storage::disk('public')->url($user->avatar) : null);
         $guruAccountRoute = \Illuminate\Support\Facades\Route::has('guru.account.edit') ? route('guru.account.edit') : '#';
     @endphp
 
     <div class="h-full flex overflow-hidden">
-        {{-- Mobile Overlay Backdrop --}}
+        {{-- Mobile Overlay --}}
         <div x-show="sidebarOpen" 
              x-cloak
              @click="sidebarOpen = false" 
@@ -48,11 +42,10 @@
              x-transition:leave-end="opacity-0"
              class="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs lg:hidden"></div>
 
-        {{-- Sidebar Guru Navigasi --}}
+        {{-- Sidebar Guru --}}
         <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static shrink-0 flex flex-col h-full shadow-xl lg:shadow-none"
                :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
             
-            <!-- Header Sidebar -->
             <div class="px-4 py-4 border-b border-slate-800 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2.5 min-w-0">
                     <img src="{{ asset('images/logo-pplg.png') }}" 
@@ -76,7 +69,6 @@
                 </button>
             </div>
             
-            <!-- Link Navigasi Sidebar khusus Guru -->
             <nav id="guru-sidebar-nav" class="p-4 space-y-1 text-sm overflow-y-auto flex-1 no-scrollbar">
                 @if(\Illuminate\Support\Facades\Route::has('guru.dashboard'))
                     <a href="{{ route('guru.dashboard') }}" 
@@ -121,10 +113,9 @@
             </nav>
         </aside>
 
-        {{-- Main Content Area --}}
+        {{-- Main Area --}}
         <div class="flex-1 flex flex-col min-w-0 h-full overflow-y-auto no-scrollbar">
             
-            {{-- Header Guru --}}
             <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-10 shadow-xs shrink-0 gap-3">
                 
                 <div class="flex items-center gap-2.5 min-w-0 flex-1">
@@ -148,9 +139,7 @@
                     </div>
                 </div>
 
-                <!-- Dropdown Profil User Guru -->
                 <div class="relative shrink-0" x-data="{ profileDropdownOpen: false }" @keydown.escape.window="profileDropdownOpen = false">
-                    
                     <button type="button" 
                             @click="profileDropdownOpen = !profileDropdownOpen" 
                             @click.away="profileDropdownOpen = false"
@@ -222,10 +211,8 @@
                                 </form>
                             @endif
                         </div>
-
                     </div>
                 </div>
-
             </header>
 
             {{-- Flash Alert Container Global --}}
@@ -268,121 +255,41 @@
         </div>
     </div>
 
-    <!-- GLOBAL CROPPER MODAL INTEGRATION -->
-    <div x-data="{
-            open: false,
-            modalTitle: 'Potong Gambar',
-            aspectRatio: 16 / 9,
-            cropper: null,
-            targetInput: null,
-            originalFile: null,
-            onCropComplete: null,
-            
-            initCropper(e) {
-                const detail = e.detail;
-                this.modalTitle = detail.title || 'Potong Gambar';
-                this.aspectRatio = detail.aspectRatio || 16 / 9;
-                this.targetInput = detail.targetInput || null;
-                this.originalFile = detail.file || null;
-                this.onCropComplete = detail.onCropComplete || null;
-
-                if (!this.originalFile) return;
-
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const imageEl = document.getElementById('global-cropper-image');
-                    imageEl.src = event.target.result;
-                    this.open = true;
-
-                    this.$nextTick(() => {
-                        if (this.cropper) {
-                            this.cropper.destroy();
-                        }
-                        this.cropper = new Cropper(imageEl, {
-                            aspectRatio: this.aspectRatio,
-                            viewMode: 1,
-                            autoCropArea: 0.9,
-                            responsive: true,
-                            background: false
-                        });
-                    });
-                };
-                reader.readAsDataURL(this.originalFile);
-            },
-            
-            cropAndSave() {
-                if (!this.cropper) return;
-
-                this.cropper.getCroppedCanvas({
-                    maxWidth: 1920,
-                    maxHeight: 1080,
-                    imageSmoothingEnabled: true,
-                    imageSmoothingQuality: 'high',
-                }).toBlob((blob) => {
-                    if (!blob) return;
-
-                    const croppedFile = new File([blob], this.originalFile.name, {
-                        type: this.originalFile.type || 'image/jpeg',
-                        lastModified: Date.now()
-                    });
-
-                    if (this.targetInput) {
-                        const dataTransfer = new DataTransfer();
-                        dataTransfer.items.add(croppedFile);
-                        this.targetInput.files = dataTransfer.files;
-                    }
-
-                    if (typeof this.onCropComplete === 'function') {
-                        this.onCropComplete(croppedFile);
-                    }
-
-                    this.closeModal();
-                }, this.originalFile.type || 'image/jpeg');
-            },
-
-            closeModal() {
-                this.open = false;
-                if (this.cropper) {
-                    this.cropper.destroy();
-                    this.cropper = null;
-                }
-            }
-         }"
-         @open-cropper.window="initCropper($event)"
-         x-show="open"
-         x-cloak
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs"
-         @keydown.escape.window="closeModal()">
+    {{-- MODAL GLOBAL CROPPER JS --}}
+    <div x-data="globalImageCropper()" 
+         x-show="open" 
+         x-cloak 
+         @open-cropper.window="initCrop($event.detail)"
+         @keydown.escape.window="closeModal()"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
         
-        <div class="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]"
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]"
              @click.away="closeModal()">
             
-            <!-- Modal Header -->
-            <div class="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between shrink-0 bg-slate-50">
-                <h3 class="text-sm font-bold text-slate-800" x-text="modalTitle"></h3>
-                <button type="button" @click="closeModal()" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg transition cursor-pointer">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 class="text-sm font-bold text-slate-800" x-text="title">Potong Gambar</h3>
+                <button type="button" @click="closeModal()" class="text-slate-400 hover:text-slate-600 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
-            <!-- Image Canvas Wrapper -->
-            <div class="p-4 flex-1 bg-slate-900 flex items-center justify-center min-h-[300px] max-h-[60vh] overflow-hidden">
-                <img id="global-cropper-image" class="max-w-full max-h-full block">
+            <div class="p-4 flex-1 overflow-hidden flex items-center justify-center bg-slate-900 min-h-[300px]">
+                <img x-ref="cropImage" :src="imageSrc" class="max-w-full max-h-[60vh] object-contain">
             </div>
 
-            <!-- Modal Footer -->
-            <div class="px-5 py-3.5 border-t border-slate-200 flex items-center justify-end gap-3 shrink-0 bg-white">
-                <button type="button" @click="closeModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
+            <div class="px-5 py-4 border-t border-slate-100 bg-white flex items-center justify-end gap-2.5">
+                <button type="button" @click="closeModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">
                     Batal
                 </button>
-                <button type="button" @click="cropAndSave()" class="px-5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs transition cursor-pointer">
-                    Potong & Terapan
+                <button type="button" @click="applyCrop()" class="px-4 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-sm cursor-pointer">
+                    Simpan Potongan
                 </button>
             </div>
         </div>
     </div>
+
+    <!-- Cropper.js Script (Tanpa integrity agar tidak terblokir oleh browser) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <script>
         (function() {
@@ -401,13 +308,9 @@
             nav.addEventListener('scroll', () => {
                 localStorage.setItem('guru_sidebar_scroll_pos', nav.scrollTop);
             });
-
-            nav.querySelectorAll('a').forEach(link => {
-                link.addEventListener('click', () => {
-                    localStorage.setItem('guru_sidebar_scroll_pos', nav.scrollTop);
-                });
-            });
         })();
     </script>
+
+    @stack('scripts')
 </body>
 </html>

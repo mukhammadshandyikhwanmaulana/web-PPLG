@@ -5,6 +5,12 @@
 @section('content')
 
     @php
+        $mainCoverMedia = $activity->cover;
+        $mainCoverPath = $mainCoverMedia?->path ?? $mainCoverMedia?->file_path;
+        $mainCoverDisk = $mainCoverMedia?->disk ?? 'public';
+        $mainCoverUrl = $activity->cover_url 
+            ?? ($mainCoverPath ? \Illuminate\Support\Facades\Storage::disk($mainCoverDisk)->url(ltrim($mainCoverPath, '/')) : null);
+
         $formattedDate = $activity->event_date 
             ? \Carbon\Carbon::parse($activity->event_date)->translatedFormat('d F Y') 
             : \Carbon\Carbon::parse($activity->created_at)->translatedFormat('d F Y');
@@ -66,11 +72,11 @@
                             </div>
                         </div>
 
-                        @if($activity->cover_url)
+                        @if($mainCoverUrl)
                             <div class="bg-white p-3 rounded-3xl border border-slate-200/80 shadow-xs">
                                 <div class="relative rounded-2xl overflow-hidden bg-slate-950 aspect-[16/10] sm:aspect-[16/9] group cursor-pointer"
                                      @if(count($galleryPhotos) > 0) @click="openPreview(0)" @endif>
-                                    <img src="{{ $activity->cover_url }}" alt="{{ $activity->title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                                    <img src="{{ $mainCoverUrl }}" alt="{{ $activity->title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                                 </div>
                             </div>
                         @endif
@@ -114,10 +120,14 @@
                                 <div class="space-y-3">
                                     @foreach($recentActivities as $other)
                                         @php
-                                            $oCover = null;
-                                            if (isset($other->cover_url) && $other->cover_url) {
-                                                $oCover = $other->cover_url;
-                                            }
+                                            $cMedia = $other->cover;
+                                            $cPath = $cMedia?->path ?? $cMedia?->file_path;
+                                            $cDisk = $cMedia?->disk ?? 'public';
+
+                                            $oCover = $other->cover_url 
+                                                ?? ($cPath ? \Illuminate\Support\Facades\Storage::disk($cDisk)->url(ltrim($cPath, '/')) : null)
+                                                ?? ($other->galleries?->first()?->media?->url 
+                                                    ?? ($other->galleries?->first()?->media?->path ? \Illuminate\Support\Facades\Storage::disk('public')->url(ltrim($other->galleries->first()->media->path, '/')) : null));
                                         @endphp
                                         <a href="{{ route('public.activities.show', $other->slug ?? $other->id) }}" 
                                            class="group flex gap-3 items-center p-2 rounded-2xl hover:bg-orange-50/60 transition border border-transparent hover:border-orange-100">

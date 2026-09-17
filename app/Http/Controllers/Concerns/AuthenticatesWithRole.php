@@ -66,7 +66,7 @@ trait AuthenticatesWithRole
         $userRoleValue = $user->role instanceof UserRole ? $user->role->value : (string) $user->role;
 
         $isAdmin = method_exists($user, 'hasRole') 
-            ? ($user->hasRole(UserRole::Admin->value) || $user->hasRole('admin') || $user->hasRole('super-admin'))
+            ? ($user->hasRole(UserRole::Admin->value) || $user->hasRole('admin'))
             : ($userRoleValue === UserRole::Admin->value);
 
         $isGuru = method_exists($user, 'hasRole')

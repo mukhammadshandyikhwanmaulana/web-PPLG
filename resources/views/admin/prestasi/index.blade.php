@@ -70,7 +70,7 @@
                     <option value="">Semua Level</option>
                     @foreach (\App\Enums\AchievementLevel::cases() as $level)
                         <option value="{{ $level->value }}" @selected(request('level') === $level->value)>
-                            {{ $level->label() }}
+                            {{ method_exists($level, 'label') ? $level->label() : ucfirst($level->value) }}
                         </option>
                     @endforeach
                 </select>
@@ -136,16 +136,22 @@
 
                 <div class="text-xs text-slate-600 space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200/60">
                     <div class="flex justify-between">
+                        <span class="text-slate-400">Pembuat:</span>
+                        <span class="text-slate-800 font-medium text-right">{{ $achievement->creator?->name ?? 'Admin' }}</span>
+                    </div>
+                    <div class="flex justify-between">
                         <span class="text-slate-400">Kontributor:</span>
                         <span class="text-slate-800 font-medium text-right">{{ $achievement->contributor_name ?? '—' }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Level:</span>
-                        <span class="text-slate-800 font-medium">{{ $achievement->level instanceof \App\Enums\AchievementLevel ? $achievement->level->label() : ($achievement->level ?? '—') }}</span>
+                        <span class="text-slate-800 font-medium">
+                            {{ $achievement->level instanceof \App\Enums\AchievementLevel ? (method_exists($achievement->level, 'label') ? $achievement->level->label() : ucfirst($achievement->level->value)) : ($achievement->level ?? '—') }}
+                        </span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Tanggal:</span>
-                        <span class="text-slate-800 font-medium">{{ $achievement->achievement_date?->format('d M Y') ?? '—' }}</span>
+                        <span class="text-slate-800 font-medium">{{ $achievement->achievement_date ? (is_string($achievement->achievement_date) ? \Carbon\Carbon::parse($achievement->achievement_date)->format('d M Y') : $achievement->achievement_date->format('d M Y')) : '—' }}</span>
                     </div>
                     <div class="flex justify-between items-center pt-1.5 border-t border-slate-200/60">
                         <span class="text-slate-400">Dokumen Bukti:</span>
@@ -195,6 +201,7 @@
                 <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold">
                     <th class="py-3.5 px-4">Judul</th>
                     <th class="py-3.5 px-4">Deskripsi</th>
+                    <th class="py-3.5 px-4">Pembuat</th>
                     <th class="py-3.5 px-4">Kontributor</th>
                     <th class="py-3.5 px-4 w-32">Tanggal</th>
                     <th class="py-3.5 px-4 w-28">Level</th>
@@ -224,14 +231,17 @@
                                 {{ strip_tags($achievement->description ?? '—') }}
                             </div>
                         </td>
+                        <td class="py-3 px-4 text-slate-600 whitespace-nowrap">
+                            {{ $achievement->creator?->name ?? '—' }}
+                        </td>
                         <td class="py-3 px-4 text-slate-600">
                             {{ $achievement->contributor_name ?? '—' }}
                         </td>
                         <td class="py-3 px-4 text-slate-600 whitespace-nowrap">
-                            {{ $achievement->achievement_date?->format('d M Y') ?? '—' }}
+                            {{ $achievement->achievement_date ? (is_string($achievement->achievement_date) ? \Carbon\Carbon::parse($achievement->achievement_date)->format('d M Y') : $achievement->achievement_date->format('d M Y')) : '—' }}
                         </td>
                         <td class="py-3 px-4 text-slate-600 whitespace-nowrap">
-                            {{ $achievement->level instanceof \App\Enums\AchievementLevel ? $achievement->level->label() : ($achievement->level ?? '—') }}
+                            {{ $achievement->level instanceof \App\Enums\AchievementLevel ? (method_exists($achievement->level, 'label') ? $achievement->level->label() : ucfirst($achievement->level->value)) : ($achievement->level ?? '—') }}
                         </td>
                         <td class="py-3 px-4 text-center whitespace-nowrap">
                             @if($isPublished)
@@ -274,7 +284,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="py-12 px-4 text-center text-slate-500">
+                        <td colspan="9" class="py-12 px-4 text-center text-slate-500">
                             Belum ada data prestasi yang ditemukan.
                         </td>
                     </tr>
@@ -283,7 +293,7 @@
         </table>
     </div>
 
-    @if ($achievements->hasPages())
+    @if (method_exists($achievements, 'hasPages') && $achievements->hasPages())
         <div class="px-4 py-3 bg-white border border-slate-300 rounded-2xl shadow-xs">
             {{ $achievements->links() }}
         </div>
@@ -299,10 +309,10 @@
          x-transition:leave-end="opacity-0"
          class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-xs"
          x-cloak>
-        
+
         <div class="relative max-w-lg w-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col max-h-[90vh]"
              @click.away="previewModal = false">
-            
+
             <!-- Modal Header -->
             <div class="flex items-center justify-between p-4 border-b border-slate-800 text-white shrink-0">
                 <div class="flex items-center gap-2.5 min-w-0 pr-2">
@@ -325,7 +335,7 @@
 
             <!-- Modal Body Container -->
             <div class="p-5 flex-1 flex flex-col items-center justify-center min-h-[260px] bg-slate-950/60 overflow-y-auto">
-                
+
                 <!-- JIKA BERKAS ADALAH PDF -->
                 <template x-if="previewType === 'pdf'">
                     <div class="w-full flex flex-col items-center justify-center text-center p-6 bg-slate-900/90 rounded-2xl border border-slate-800/80 space-y-4">
@@ -391,7 +401,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('search-input');
-        
+
         if (searchInput && sessionStorage.getItem('prestasi_search_focus') === 'true') {
             searchInput.focus();
             const textLen = searchInput.value.length;

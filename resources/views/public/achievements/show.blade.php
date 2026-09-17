@@ -5,7 +5,12 @@
 @section('content')
 
     @php
-        $imageUrl = $achievement->document_url;
+        $docMedia = $achievement->document;
+        $docPath = $docMedia?->path ?? $docMedia?->file_path;
+        $docDisk = $docMedia?->disk ?? 'public';
+        $imageUrl = $achievement->document_url 
+            ?? ($docPath ? \Illuminate\Support\Facades\Storage::disk($docDisk)->url(ltrim($docPath, '/')) : null);
+
         $formattedDate = $achievement->achievement_date 
             ? $achievement->achievement_date->translatedFormat('d F Y') 
             : ($achievement->created_at ? $achievement->created_at->translatedFormat('d F Y') : '');
@@ -116,7 +121,12 @@
                                 <div class="space-y-3">
                                     @foreach($otherAchievements as $other)
                                         @php
-                                            $otherImg = $other->document_url;
+                                            $oDocMedia = $other->document;
+                                            $oDocPath = $oDocMedia?->path ?? $oDocMedia?->file_path;
+                                            $oDocDisk = $oDocMedia?->disk ?? 'public';
+                                            $otherImg = $other->document_url 
+                                                ?? ($oDocPath ? \Illuminate\Support\Facades\Storage::disk($oDocDisk)->url(ltrim($oDocPath, '/')) : null);
+
                                             $otherLevel = is_object($other->level) && property_exists($other->level, 'value') 
                                                 ? $other->level->value 
                                                 : (string) $other->level;

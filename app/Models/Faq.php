@@ -12,6 +12,8 @@ class Faq extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'faqs';
+
     protected $fillable = [
         'question',
         'answer',
@@ -44,7 +46,7 @@ class Faq extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true)
-                     ->orderBy('sort_order')
-                     ->orderBy('question');
+                     ->orderBy('sort_order', 'asc')
+                     ->orderBy('question', 'asc');
     }
 }

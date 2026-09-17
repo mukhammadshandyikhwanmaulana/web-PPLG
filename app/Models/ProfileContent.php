@@ -10,6 +10,8 @@ class ProfileContent extends Model
 {
     use HasFactory;
 
+    protected $table = 'profile_contents';
+
     protected $fillable = [
         'history_content',
         'vision_content',

@@ -6,6 +6,7 @@
 <div class="max-w-7xl mx-auto space-y-4 sm:space-y-6 px-4 sm:px-6 lg:px-8 py-4" 
      x-data="{ openModal: false, activeAlbum: null, selectedMediaIds: [] }">
 
+    <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">Galeri Media</h1>
@@ -22,6 +23,7 @@
         </div>
     </div>
 
+    <!-- Filter & Search Section -->
     <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-300">
         <form id="search-form" method="GET" action="{{ route('admin.media.index') }}" class="flex flex-col md:flex-row items-stretch md:items-center gap-3">
             <div class="relative w-full md:flex-1">

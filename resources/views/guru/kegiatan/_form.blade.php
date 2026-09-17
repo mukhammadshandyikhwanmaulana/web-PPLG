@@ -20,11 +20,20 @@
 @endphp
 
 <div class="space-y-5">
-
     <!-- Input Tersembunyi Otomatis untuk ID Galeri yang Dihapus -->
     <template x-for="id in removedGalleries" :key="id">
         <input type="hidden" name="remove_gallery_ids[]" :value="id">
     </template>
+
+    <!-- Alert Error Validation Global -->
+    @if($errors->any())
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-medium flex items-center gap-2 shadow-xs">
+            <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Mohon periksa kembali inputan Anda. Beberapa bidang belum terisi dengan benar.</span>
+        </div>
+    @endif
 
     <!-- Grid Judul & Tanggal -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -139,13 +148,13 @@
         </div>
 
         <!-- Galeri Foto Tersimpan -->
-        @if (isset($act) && isset($act->galleries) && $act->galleries->count() > 0)
+        @if (isset($act) && isset($act->galleries) && $act->galleries->where('is_cover', false)->count() > 0)
             <div class="space-y-2">
                 <span class="block text-xs font-semibold text-slate-600">
                     Foto Galeri Tersimpan (Klik foto untuk menandai batal/hapus):
                 </span>
                 <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                    @foreach ($act->galleries as $gallery)
+                    @foreach ($act->galleries->where('is_cover', false) as $gallery)
                         @php
                             $media = $gallery->media ?? $gallery;
                             $galDisk = $media->disk ?? $gallery->disk ?? 'public';
@@ -223,7 +232,6 @@
             return;
         }
 
-        // Panggil Cropper Modal Global untuk Gambar Cover Utama Kegiatan (Rasio 16:9)
         window.dispatchEvent(new CustomEvent('open-cropper', {
             detail: {
                 title: 'Potong Sampul Utama Kegiatan',

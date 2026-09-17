@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -27,9 +28,6 @@ class StaffMember extends Model
         'updated_by',
     ];
 
-    /**
-     * Sembunyikan accessor bawaan jika di-serialize ke array/JSON (opsional)
-     */
     protected $appends = [
         'display_position',
     ];
@@ -49,52 +47,50 @@ class StaffMember extends Model
     /* ================= ACCESSORS ================= */
 
     /**
-     * Accessor untuk memformat jabatan agar ringkas & tidak bertumpuk/double.
-     * Dipanggil dengan: $staff->display_position
+     * Accessor aman untuk memformat jabatan staf.
      */
-    public function getDisplayPositionAttribute(): string
+    protected function displayPosition(): Attribute
     {
-        $originalPosition = $this->attributes['position'] ?? '';
+        return Attribute::make(
+            get: function () {
+                $originalPosition = $this->position ?? '';
 
-        if (empty($originalPosition)) {
-            return 'GURU PENGAJAR PPLG';
-        }
+                if (empty($originalPosition)) {
+                    return 'GURU PENGAJAR PPLG';
+                }
 
-        $positionLower = strtolower($originalPosition);
+                $positionLower = strtolower($originalPosition);
 
-        // 1. UTAMAKAN GURU: Jika mengandung kata Guru / Pengajar / Produktif, 
-        // kembalikan sebagai Guru (agar di grid daftar guru halaman profil tampil sebagai Guru)
-        if (
-            str_contains($positionLower, 'guru') || 
-            str_contains($positionLower, 'pengajar') || 
-            str_contains($positionLower, 'produktif')
-        ) {
-            return 'GURU PRODUKTIF PPLG';
-        }
+                if (
+                    str_contains($positionLower, 'guru') || 
+                    str_contains($positionLower, 'pengajar') || 
+                    str_contains($positionLower, 'produktif')
+                ) {
+                    return 'GURU PRODUKTIF PPLG';
+                }
 
-        // 2. Jika HANYA mengandung kata Ketua / Kaprog / Kepala (tanpa ada kata Guru)
-        if (
-            str_contains($positionLower, 'ketua') || 
-            str_contains($positionLower, 'kaprog') || 
-            str_contains($positionLower, 'kajur') || 
-            str_contains($positionLower, 'kepala')
-        ) {
-            return 'KETUA KOMPETENSI KEAHLIAN PPLG';
-        }
+                if (
+                    str_contains($positionLower, 'ketua') || 
+                    str_contains($positionLower, 'kaprog') || 
+                    str_contains($positionLower, 'kajur') || 
+                    str_contains($positionLower, 'kepala')
+                ) {
+                    return 'KETUA KOMPETENSI KEAHLIAN PPLG';
+                }
 
-        // 3. Jika hanya Staf / Laboran
-        if (
-            str_contains($positionLower, 'staf') || 
-            str_contains($positionLower, 'staff') || 
-            str_contains($positionLower, 'laboran') || 
-            str_contains($positionLower, 'admin')
-        ) {
-            return 'STAF / LABORAN PPLG';
-        }
+                if (
+                    str_contains($positionLower, 'staf') || 
+                    str_contains($positionLower, 'staff') || 
+                    str_contains($positionLower, 'laboran') || 
+                    str_contains($positionLower, 'admin')
+                ) {
+                    return 'STAF / LABORAN PPLG';
+                }
 
-        // Fallback: Ambil pecahan pertama sebelum koma
-        $positions = explode(',', $originalPosition);
-        return strtoupper(trim($positions[0]));
+                $positions = explode(',', $originalPosition);
+                return strtoupper(trim($positions[0]));
+            }
+        );
     }
 
     /* ================= RELATIONS ================= */

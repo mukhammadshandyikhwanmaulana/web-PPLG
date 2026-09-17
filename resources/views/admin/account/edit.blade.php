@@ -60,14 +60,22 @@
                                 return;
                             }
 
-                            // Panggil Event Cropper Modal Global (Rasio 1:1)
-                            $dispatch('open-cropper', {
-                                title: 'Potong Foto Profil Admin',
-                                aspectRatio: 1,
-                                file: file,
-                                targetInput: $refs.avatarInput,
-                                targetPreview: $refs.avatarImgPreview
-                            });
+                            // Panggil Event Cropper Modal Global (Rasio 1:1) via CustomEvent
+                            window.dispatchEvent(new CustomEvent('open-cropper', {
+                                detail: {
+                                    title: 'Potong Foto Profil Admin',
+                                    aspectRatio: 1,
+                                    file: file,
+                                    targetInput: $refs.avatarInput,
+                                    onCropComplete: (croppedFile) => {
+                                        if (this.photoPreview && this.photoPreview.startsWith('blob:')) {
+                                            URL.revokeObjectURL(this.photoPreview);
+                                        }
+                                        this.photoPreview = URL.createObjectURL(croppedFile);
+                                        this.removePhoto = false;
+                                    }
+                                }
+                            }));
                         }
                     },
                     clearPhoto() {
@@ -84,10 +92,16 @@
 
                     <!-- Lingkaran Preview Foto -->
                     <div class="relative shrink-0">
-                        <img x-ref="avatarImgPreview"
-                             :src="photoPreview || 'https://placehold.co/100x100/4f46e5/white?text={{ strtoupper(substr($user->name ?? 'A', 0, 1)) }}'" 
-                             alt="Foto Profil" 
-                             class="w-20 h-20 rounded-2xl object-cover border-2 border-indigo-500/20 shadow-xs">
+                        <template x-if="photoPreview">
+                            <img :src="photoPreview" 
+                                 alt="Foto Profil" 
+                                 class="w-20 h-20 rounded-2xl object-cover border-2 border-indigo-500/20 shadow-xs">
+                        </template>
+                        <template x-if="!photoPreview">
+                            <div class="w-20 h-20 rounded-2xl bg-indigo-600 text-white font-bold text-2xl flex items-center justify-center border-2 border-indigo-200 shadow-xs">
+                                {{ strtoupper(substr($user->name ?? 'A', 0, 1)) }}
+                            </div>
+                        </template>
                     </div>
 
                     <!-- Tombol Upload & Kontrol -->
@@ -116,7 +130,7 @@
                         </div>
                         @error('avatar')
                             <p class="text-xs text-rose-600 font-medium pt-1">{{ $message }}</p>
-                        @enderror
+                        @errorEnd
                     </div>
                 </div>
 

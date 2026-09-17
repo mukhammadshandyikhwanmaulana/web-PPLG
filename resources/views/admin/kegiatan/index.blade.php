@@ -157,10 +157,14 @@
                             </p>
                         @endif
 
-                        <p class="text-xs text-slate-500 mt-1 flex items-center gap-1 font-medium">
-                            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                            <span>{{ $item->event_date ? (is_string($item->event_date) ? \Carbon\Carbon::parse($item->event_date)->format('d M Y') : $item->event_date->format('d M Y')) : '-' }}</span>
-                        </p>
+                        <div class="flex items-center gap-3 mt-1.5 text-xs text-slate-500 font-medium">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <span>{{ $item->event_date ? (is_string($item->event_date) ? \Carbon\Carbon::parse($item->event_date)->format('d M Y') : $item->event_date->format('d M Y')) : '-' }}</span>
+                            </span>
+                            <span class="text-slate-300">•</span>
+                            <span class="truncate">Oleh: {{ $item->creator?->name ?? 'Admin' }}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -213,6 +217,7 @@
                     <th class="py-3.5 px-4 w-12 text-center">No</th>
                     <th class="py-3.5 px-4 w-20">Cover</th>
                     <th class="py-3.5 px-4">Judul & Deskripsi Kegiatan</th>
+                    <th class="py-3.5 px-4 w-36">Pembuat</th>
                     <th class="py-3.5 px-4 w-36">Tanggal</th>
                     <th class="py-3.5 px-4 w-36 text-center">Galeri</th>
                     <th class="py-3.5 px-4 w-28 text-center">Status</th>
@@ -270,6 +275,9 @@
                             @endif
                         </td>
                         <td class="py-3 px-4 text-slate-600 whitespace-nowrap">
+                            {{ $item->creator?->name ?? '—' }}
+                        </td>
+                        <td class="py-3 px-4 text-slate-600 whitespace-nowrap">
                             {{ $item->event_date ? (is_string($item->event_date) ? \Carbon\Carbon::parse($item->event_date)->format('d M Y') : $item->event_date->format('d M Y')) : '-' }}
                         </td>
                         <td class="py-3 px-4 text-center whitespace-nowrap">
@@ -316,7 +324,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="py-12 px-4 text-center text-slate-500">
+                        <td colspan="8" class="py-12 px-4 text-center text-slate-500">
                             <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                             </svg>

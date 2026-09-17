@@ -6,7 +6,7 @@
 <div class="max-w-7xl mx-auto space-y-4 sm:space-y-6 px-4 sm:px-6 lg:px-8 py-4">
 
     <!-- Header Section -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-300 shadow-xs">
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
         <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             Selamat Datang, {{ auth()->user()?->name ?? 'Bapak/Ibu Guru' }} 👋
         </h1>
@@ -19,7 +19,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
         
         <!-- Card: Karya Siswa Saya -->
-        <div class="bg-white rounded-2xl border border-slate-300 shadow-xs p-4 sm:p-5 hover:border-slate-400 transition flex flex-col justify-between">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-5 hover:border-slate-300 transition flex flex-col justify-between">
             <div class="flex items-start justify-between gap-2">
                 <p class="text-xs sm:text-sm font-semibold text-slate-500 leading-snug">Karya Siswa Bimbingan</p>
                 <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
@@ -34,7 +34,7 @@
         </div>
 
         <!-- Card: Kegiatan Saya -->
-        <div class="bg-white rounded-2xl border border-slate-300 shadow-xs p-4 sm:p-5 hover:border-slate-400 transition flex flex-col justify-between">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-5 hover:border-slate-300 transition flex flex-col justify-between">
             <div class="flex items-start justify-between gap-2">
                 <p class="text-xs sm:text-sm font-semibold text-slate-500 leading-snug">Laporan Kegiatan & Berita</p>
                 <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0">
@@ -49,7 +49,7 @@
         </div>
 
         <!-- Card: Prestasi Saya -->
-        <div class="bg-white rounded-2xl border border-slate-300 shadow-xs p-4 sm:p-5 hover:border-slate-400 transition flex flex-col justify-between">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-5 hover:border-slate-300 transition flex flex-col justify-between">
             <div class="flex items-start justify-between gap-2">
                 <p class="text-xs sm:text-sm font-semibold text-slate-500 leading-snug">Data Prestasi Dicatat</p>
                 <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
@@ -69,8 +69,8 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
         
         <!-- Karya Siswa Terbaru Saya -->
-        <div class="bg-white rounded-2xl border border-slate-300 shadow-xs overflow-hidden">
-            <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <h3 class="text-sm font-bold text-slate-900">Karya Siswa Terbaru Anda</h3>
                 @if(\Illuminate\Support\Facades\Route::has('guru.karya-siswa.index'))
                     <a href="{{ route('guru.karya-siswa.index') }}" class="text-xs font-semibold text-indigo-600 hover:underline">Lihat Semua</a>
@@ -102,8 +102,8 @@
         </div>
 
         <!-- Prestasi Terbaru Saya -->
-        <div class="bg-white rounded-2xl border border-slate-300 shadow-xs overflow-hidden">
-            <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <h3 class="text-sm font-bold text-slate-900">Prestasi Terbaru Anda</h3>
                 @if(\Illuminate\Support\Facades\Route::has('guru.prestasi.index'))
                     <a href="{{ route('guru.prestasi.index') }}" class="text-xs font-semibold text-indigo-600 hover:underline">Lihat Semua</a>
@@ -137,8 +137,8 @@
     </div>
 
     <!-- Section Laporan Kegiatan Terbaru -->
-    <div class="bg-white rounded-2xl border border-slate-300 shadow-xs overflow-hidden">
-        <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <h3 class="text-sm font-bold text-slate-900">Laporan Kegiatan Terbaru Anda</h3>
             @if(\Illuminate\Support\Facades\Route::has('guru.kegiatan.index'))
                 <a href="{{ route('guru.kegiatan.index') }}" class="text-xs font-semibold text-indigo-600 hover:underline">Lihat Semua</a>

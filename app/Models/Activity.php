@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PublishStatus;
 use App\Notifications\AdminActivityNotification;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,12 +33,16 @@ class Activity extends Model
         'updated_by',
     ];
 
+    protected $appends = [
+        'cover_url',
+    ];
+
     protected function casts(): array
     {
         return [
             'event_date'     => 'date',
             'published_at'   => 'datetime',
-            'status'         => class_exists(PublishStatus::class) ? PublishStatus::class : 'string',
+            'status'         => PublishStatus::class,
             'user_id'        => 'integer',
             'cover_media_id' => 'integer',
             'created_by'     => 'integer',
@@ -69,7 +74,13 @@ class Activity extends Model
         $actor = auth()->user();
         if (! $actor) return;
 
-        $admins = User::query()->admin()->active()->get();
+        // Kirim notifikasi ke admin lain (Kecuali actor yang sedang membuat/mengubah data)
+        $admins = User::query()
+            ->admin()
+            ->active()
+            ->where('id', '!=', $actor->id)
+            ->get();
+
         if ($admins->isEmpty()) return;
 
         $url = \Illuminate\Support\Facades\Route::has('admin.kegiatan.index') 
@@ -84,6 +95,33 @@ class Activity extends Model
             subjectUrl: $action === 'deleted' ? null : $url
         ));
     }
+
+    /* ================= ACCESSORS ================= */
+
+    /**
+     * Accessor Sampul Kegiatan yang Aman dari N+1 Query.
+     */
+    protected function coverUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if ($this->relationLoaded('cover') && $this->cover && ! empty($this->cover->path)) {
+                    return Storage::disk($this->cover->disk ?? 'public')->url($this->cover->path);
+                }
+
+                if ($this->relationLoaded('galleries') && $this->galleries->isNotEmpty()) {
+                    $firstGallery = $this->galleries->first();
+                    if ($firstGallery && $firstGallery->relationLoaded('media') && $firstGallery->media && ! empty($firstGallery->media->path)) {
+                        return Storage::disk($firstGallery->media->disk ?? 'public')->url($firstGallery->media->path);
+                    }
+                }
+
+                return null;
+            }
+        );
+    }
+
+    /* ================= RELATIONS ================= */
 
     public function user(): BelongsTo
     {
@@ -110,27 +148,11 @@ class Activity extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    public function getCoverUrlAttribute(): ?string
-    {
-        $coverMedia = $this->relationLoaded('cover') ? $this->cover : $this->cover()->first();
-        if ($coverMedia && ! empty($coverMedia->path)) {
-            return Storage::disk($coverMedia->disk ?? 'public')->url($coverMedia->path);
-        }
-
-        if ($this->relationLoaded('galleries') && $this->galleries->isNotEmpty()) {
-            $firstGallery = $this->galleries->first();
-            if ($firstGallery && $firstGallery->media && ! empty($firstGallery->media->path)) {
-                return Storage::disk($firstGallery->media->disk ?? 'public')->url($firstGallery->media->path);
-            }
-        }
-
-        return null;
-    }
+    /* ================= SCOPES ================= */
 
     public function scopePublished(Builder $query): Builder
     {
-        $publishedValue = class_exists(PublishStatus::class) ? PublishStatus::Published : 'published';
-        return $query->where('status', $publishedValue);
+        return $query->where('status', PublishStatus::Published);
     }
 
     public function scopeLatest6(Builder $query): Builder

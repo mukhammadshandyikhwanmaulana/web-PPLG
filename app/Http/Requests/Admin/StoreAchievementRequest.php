@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Enums\AchievementLevel;
 use App\Enums\PublishStatus;
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,10 +15,14 @@ class StoreAchievementRequest extends FormRequest
         if (! auth()->check()) return false;
         $user = auth()->user();
 
-        $hasSpatieRole = method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['admin', 'guru', 'superadmin']);
-        $hasStringRole = in_array(strtolower($user->role ?? ''), ['admin', 'guru', 'superadmin']);
+        $allowedRoles = [UserRole::Admin->value, UserRole::Guru->value];
 
-        return $hasSpatieRole || $hasStringRole;
+        if (method_exists($user, 'hasAnyRole')) {
+            return $user->hasAnyRole($allowedRoles);
+        }
+
+        $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
+        return in_array($userRole, $allowedRoles, true);
     }
 
     protected function prepareForValidation(): void
@@ -28,7 +33,7 @@ class StoreAchievementRequest extends FormRequest
             'level'            => $this->filled('level') ? $this->level : null,
             'contributor_name' => $this->filled('contributor_name') ? trim((string) $this->contributor_name) : null,
             'description'      => $this->filled('description') ? trim((string) $this->description) : null,
-            'status'           => $this->filled('status') ? $this->status : (class_exists(PublishStatus::class) ? PublishStatus::Draft->value : 'draft'),
+            'status'           => $this->filled('status') ? $this->status : PublishStatus::Draft->value,
         ]);
     }
 
@@ -37,10 +42,10 @@ class StoreAchievementRequest extends FormRequest
         return [
             'title'            => ['required', 'string', 'max:255'],
             'achievement_date' => ['nullable', 'date'],
-            'level'            => ['nullable', class_exists(AchievementLevel::class) ? Rule::enum(AchievementLevel::class) : 'string'],
+            'level'            => ['nullable', Rule::enum(AchievementLevel::class)],
             'contributor_name' => ['nullable', 'string', 'max:255'],
             'description'      => ['nullable', 'string'],
-            'status'           => ['required', class_exists(PublishStatus::class) ? Rule::enum(PublishStatus::class) : 'string'],
+            'status'           => ['required', Rule::enum(PublishStatus::class)],
             'document'         => ['nullable', 'file', 'mimes:pdf,png,jpg,jpeg,webp', 'max:10240'],
         ];
     }

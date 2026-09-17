@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
-use App\Models\Activity;
 use App\Models\Achievement;
-use App\Models\StudentWork;
+use App\Models\Activity;
 use App\Models\Gallery;
+use App\Models\StudentWork;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class GalleryController extends Controller
@@ -23,7 +24,7 @@ class GalleryController extends Controller
         if (empty($category) || $category === 'kegiatan') {
             $activities = Activity::with(['cover', 'galleries.media'])
                 ->published()
-                ->where(function($q) {
+                ->where(function ($q) {
                     $q->whereNotNull('cover_media_id')->orWhereHas('galleries');
                 })
                 ->get();
@@ -44,7 +45,7 @@ class GalleryController extends Controller
                     if ($gal->media) {
                         $allItems->push([
                             'title'        => $gal->caption ?? $act->title,
-                            'photo_url'    => $gal->media->url ?? (\Illuminate\Support\Facades\Storage::disk($gal->media->disk ?? 'public')->url($gal->media->path)),
+                            'photo_url'    => $gal->media->url ?? (Storage::disk($gal->media->disk ?? 'public')->url($gal->media->path)),
                             'category'     => 'Kegiatan',
                             'detail_route' => route('public.activities.show', $act->slug ?? $act->id),
                             'created_at'   => $gal->created_at,
@@ -58,7 +59,7 @@ class GalleryController extends Controller
         if (empty($category) || $category === 'prestasi') {
             $achievements = Achievement::with(['document', 'galleries.media'])
                 ->published()
-                ->where(function($q) {
+                ->where(function ($q) {
                     $q->whereNotNull('document_media_id')->orWhereHas('galleries');
                 })
                 ->get();
@@ -69,7 +70,7 @@ class GalleryController extends Controller
                     $isPdf = str_contains(strtolower($ach->document?->mime_type ?? ''), 'pdf') 
                           || str_ends_with(strtolower($ach->document_url), '.pdf');
 
-                    if (!$isPdf) {
+                    if (! $isPdf) {
                         $allItems->push([
                             'title'        => $ach->title,
                             'photo_url'    => $ach->document_url,
@@ -86,7 +87,7 @@ class GalleryController extends Controller
         if (empty($category) || $category === 'karya') {
             $studentWorks = StudentWork::with(['cover', 'galleries.media'])
                 ->published()
-                ->where(function($q) {
+                ->where(function ($q) {
                     $q->whereNotNull('cover_media_id')->orWhereHas('galleries');
                 })
                 ->get();
@@ -108,7 +109,7 @@ class GalleryController extends Controller
         $sortedItems = $allItems->sortByDesc('created_at')->values();
 
         // Manual Pagination untuk Collection
-        $page = $request->query('page', 1);
+        $page = (int) $request->query('page', 1);
         $perPage = 12;
         $paginatedItems = new LengthAwarePaginator(
             $sortedItems->forPage($page, $perPage),

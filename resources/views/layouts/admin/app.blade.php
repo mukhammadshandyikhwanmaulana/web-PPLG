@@ -4,42 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Admin') — {{ config('app.name', 'PPLG System') }}</title>
+    <title>@yield('title', 'Admin Panel') — {{ config('app.name', 'PPLG System') }}</title>
+    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
-    <!-- Cropper.js CSS (Atribut integrity diperbarui agar tidak diblokir browser) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" integrity="sha512-hvNR0F/e2J7zPPfLC9auFe3/SE0yG4aJCOd/qxew74NN7eyiSKjr7xJJMu1Jy2wf7FXITpWS1E/RY8yzuXN7VA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Cropper.js CSS via cdnjs Cloudflare (Lebih Stabil & Aman dari Blokir) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
 
     <style>
         [x-cloak] { display: none !important; }
         .no-scrollbar::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
         .no-scrollbar { -ms-overflow-style: none !important; scrollbar-width: none !important; }
     </style>
+
+    @stack('styles')
 </head>
 <body class="h-full bg-slate-50 font-sans text-slate-900 antialiased overflow-hidden" 
-      x-data="{ sidebarOpen: false }"
-      @keydown.escape.window="sidebarOpen = false">
+     x-data="{ sidebarOpen: false }"
+     @keydown.escape.window="sidebarOpen = false">
     
     @php
         $user = auth()->user();
         $userRoleName = $user ? ($user->role instanceof \BackedEnum ? $user->role->value : (string)$user->role) : 'admin';
-        $userAvatar = null;
-        if ($user) {
-            if (isset($user->avatar_url)) {
-                $userAvatar = $user->avatar_url;
-            } elseif ($user->avatar) {
-                $userAvatar = \Illuminate\Support\Facades\Storage::disk('public')->url($user->avatar);
-            }
-        }
+        $userAvatar = $user?->avatar_url ?? ($user?->avatar ? \Illuminate\Support\Facades\Storage::disk('public')->url($user->avatar) : null);
+        
         $accountEditRoute = \Illuminate\Support\Facades\Route::has('admin.account.edit') ? route('admin.account.edit') : '#';
-        $profilRoute = \Illuminate\Support\Facades\Route::has('admin.profil.edit') ? route('admin.profil.edit') : '#';
-        $sambutanRoute = \Illuminate\Support\Facades\Route::has('admin.sambutan.edit') ? route('admin.sambutan.edit') : '#';
-        $unitUsahaRoute = \Illuminate\Support\Facades\Route::has('admin.unit-usaha.edit') ? route('admin.unit-usaha.edit') : '#';
-        $pengaturanRoute = \Illuminate\Support\Facades\Route::has('admin.pengaturan.edit') ? route('admin.pengaturan.edit') : '#';
+        $profilRoute      = \Illuminate\Support\Facades\Route::has('admin.profil.edit') ? route('admin.profil.edit') : '#';
+        $sambutanRoute    = \Illuminate\Support\Facades\Route::has('admin.sambutan.edit') ? route('admin.sambutan.edit') : '#';
+        $unitUsahaRoute   = \Illuminate\Support\Facades\Route::has('admin.unit-usaha.edit') ? route('admin.unit-usaha.edit') : '#';
+        $pengaturanRoute  = \Illuminate\Support\Facades\Route::has('admin.pengaturan.edit') ? route('admin.pengaturan.edit') : '#';
     @endphp
 
     <div class="h-full flex overflow-hidden">
-        {{-- Mobile Backdrop Overlay --}}
+        {{-- Mobile Overlay --}}
         <div x-show="sidebarOpen" 
              x-cloak
              @click="sidebarOpen = false" 
@@ -51,11 +48,10 @@
              x-transition:leave-end="opacity-0"
              class="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs lg:hidden"></div>
 
-        {{-- Sidebar Navigasi --}}
+        {{-- Sidebar --}}
         <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static shrink-0 flex flex-col h-full shadow-xl lg:shadow-none"
-               :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+                :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
             
-            <!-- Header Sidebar -->
             <div class="px-4 py-4 border-b border-slate-800 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2.5 min-w-0">
                     <img src="{{ asset('images/logo-pplg.png') }}" 
@@ -79,7 +75,6 @@
                 </button>
             </div>
             
-            <!-- Link Navigasi Sidebar -->
             <nav id="admin-sidebar-nav" class="p-4 space-y-1 text-sm overflow-y-auto flex-1 no-scrollbar">
                 @if(\Illuminate\Support\Facades\Route::has('admin.dashboard'))
                     <a href="{{ route('admin.dashboard') }}" 
@@ -199,12 +194,10 @@
             </nav>
         </aside>
 
-        {{-- Main Area --}}
+        {{-- Main Content --}}
         <div class="flex-1 flex flex-col min-w-0 h-full overflow-y-auto no-scrollbar">
             
-            {{-- Header Utama --}}
             <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-10 shadow-xs shrink-0 gap-3">
-                
                 <div class="flex items-center gap-2.5 min-w-0 flex-1">
                     <button type="button" 
                             class="lg:hidden p-1.5 rounded-xl text-slate-600 hover:bg-slate-100 focus:outline-none cursor-pointer transition shrink-0" 
@@ -228,8 +221,7 @@
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0">
-
-                    {{-- Lonceng Notifikasi --}}
+                    {{-- Notifikasi --}}
                     @auth
                         @php
                             $unreadNotifications = auth()->user()->unreadNotifications->take(5);
@@ -323,9 +315,8 @@
                         </div>
                     @endauth
 
-                    {{-- Dropdown Profil User --}}
+                    {{-- Dropdown Profil --}}
                     <div class="relative shrink-0" x-data="{ profileDropdownOpen: false }" @keydown.escape.window="profileDropdownOpen = false">
-                        
                         <button type="button" 
                                 @click="profileDropdownOpen = !profileDropdownOpen" 
                                 @click.away="profileDropdownOpen = false"
@@ -397,15 +388,12 @@
                                     </form>
                                 @endif
                             </div>
-
                         </div>
                     </div>
-
                 </div>
-
             </header>
 
-            {{-- Flash Alert Container Global --}}
+            {{-- Global Alerts --}}
             <div class="px-4 sm:px-6 pt-5 space-y-2 max-w-7xl mx-auto w-full shrink-0">
                 @if (session('success'))
                     <div x-data="{ show: true }" x-show="show" x-cloak class="bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-2xl p-4 text-sm shadow-xs space-y-2">
@@ -447,7 +435,7 @@
         </div>
     </div>
 
-    {{-- MODAL GLOBAL CROPPER JS --}}
+    {{-- MODAL GLOBAL CROPPER --}}
     <div x-data="globalImageCropper()" 
          x-show="open" 
          x-cloak 
@@ -480,8 +468,8 @@
         </div>
     </div>
 
-    <!-- Cropper.js Script (Atribut integrity diperbarui) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js" integrity="sha512-9KkIqdfN7ipEW6B6k+Aq20PV31bjODg4AA52W+tYtAE0jE0kMx49bjJ3FgvS56wzmyfMUHbQ4Km2b7l9+Y/+Eg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Cropper.js Script via cdnjs Cloudflare -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
 
     <script>
         (function() {
@@ -489,7 +477,7 @@
             if (!nav) return;
 
             const activeMenu = nav.querySelector('.active-menu');
-            const savedPos = localStorage.getItem('sidebar_scroll_pos');
+            const savedPos = localStorage.getItem('admin_sidebar_scroll_pos');
 
             if (savedPos !== null) {
                 nav.scrollTop = parseInt(savedPos, 10);
@@ -498,17 +486,10 @@
             }
 
             nav.addEventListener('scroll', () => {
-                localStorage.setItem('sidebar_scroll_pos', nav.scrollTop);
-            });
-
-            nav.querySelectorAll('a').forEach(link => {
-                link.addEventListener('click', () => {
-                    localStorage.setItem('sidebar_scroll_pos', nav.scrollTop);
-                });
+                localStorage.setItem('admin_sidebar_scroll_pos', nav.scrollTop);
             });
         })();
 
-        // Global Alpine Store / Controller untuk Cropper Modal
         document.addEventListener('alpine:init', () => {
             Alpine.data('globalImageCropper', () => ({
                 open: false,
@@ -557,24 +538,19 @@
                     }
 
                     canvas.toBlob((blob) => {
-                        if (!blob) {
-                            alert('Gagal mengonversi gambar.');
-                            return;
-                        }
+                        if (!blob) return;
 
                         const croppedFile = new File([blob], this.currentFile.name, {
                             type: this.currentFile.type || 'image/png',
                             lastModified: Date.now()
                         });
 
-                        // Set file baru ke input file target
                         if (this.targetInput) {
                             const container = new DataTransfer();
                             container.items.add(croppedFile);
                             this.targetInput.files = container.files;
                         }
 
-                        // Set preview jika target preview di-pass
                         if (this.targetPreview) {
                             const reader = new FileReader();
                             reader.onload = (e) => {
@@ -583,7 +559,6 @@
                             reader.readAsDataURL(croppedFile);
                         }
 
-                        // Jalankan callback jika ada (misal: untuk un-hide container preview)
                         if (typeof this.onCropComplete === 'function') {
                             this.onCropComplete(croppedFile);
                         }

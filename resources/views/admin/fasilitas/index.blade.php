@@ -202,16 +202,10 @@
                 @endforelse
             </tbody>
         </table>
-
-        @if (method_exists($facilities, 'hasPages') && $facilities->hasPages())
-            <div class="px-4 py-3 bg-slate-50 border-t border-slate-200">
-                {{ $facilities->links() }}
-            </div>
-        @endif
     </div>
 
     @if (method_exists($facilities, 'hasPages') && $facilities->hasPages())
-        <div class="block md:hidden mt-3">
+        <div class="px-4 py-3 bg-white border border-slate-300 rounded-2xl shadow-xs">
             {{ $facilities->links() }}
         </div>
     @endif
@@ -237,7 +231,7 @@
                     </svg>
                     <span class="text-sm font-semibold" x-text="previewTitle"></span>
                 </div>
-                <button type="button" @click="previewOpen = false" class="text-slate-400 hover:text-white transition p-1 rounded-lg hover:bg-slate-800">
+                <button type="button" @click="previewOpen = false" class="text-slate-400 hover:text-white transition p-1 rounded-lg hover:bg-slate-800 cursor-pointer">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>

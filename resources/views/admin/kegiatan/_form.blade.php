@@ -33,18 +33,22 @@
             this.coverFileName = file.name;
 
             if (file.type.startsWith('image/')) {
-                // Panggil Cropper Modal Global untuk Cover Kegiatan (Rasio 16:9)
-                $dispatch('open-cropper', {
-                    title: 'Potong Cover Kegiatan (16:9)',
-                    aspectRatio: 16 / 9,
-                    file: file,
-                    targetInput: $refs.coverInput,
-                    targetPreview: $refs.coverPreviewImg,
-                    onCropComplete: () => {
-                        $refs.coverPreviewBox.classList.remove('hidden');
-                        if ($refs.coverPreviewEmpty) $refs.coverPreviewEmpty.classList.add('hidden');
+                // Panggil Cropper Modal Global untuk Cover Kegiatan (Rasio 16:9) via CustomEvent
+                window.dispatchEvent(new CustomEvent('open-cropper', {
+                    detail: {
+                        title: 'Potong Cover Kegiatan (16:9)',
+                        aspectRatio: 16 / 9,
+                        file: file,
+                        targetInput: $refs.coverInput,
+                        onCropComplete: (croppedFile) => {
+                            if ($refs.coverPreviewImg) {
+                                $refs.coverPreviewImg.src = URL.createObjectURL(croppedFile);
+                            }
+                            if ($refs.coverPreviewBox) $refs.coverPreviewBox.classList.remove('hidden');
+                            if ($refs.coverPreviewEmpty) $refs.coverPreviewEmpty.classList.add('hidden');
+                        }
                     }
-                });
+                }));
             }
         },
         resetCover() {
@@ -129,12 +133,14 @@
     </div>
 
     <!-- Cover Kegiatan -->
-    <div class="pt-4 border-t border-slate-200">
-        <label class="block text-sm font-semibold text-slate-900 mb-1">Cover Kegiatan</label>
-        <p class="text-xs text-slate-400 mb-3">Format: JPEG, PNG, WEBP (Maksimal 5MB, Rasio 16:9)</p>
+    <div class="pt-4 border-t border-slate-200 space-y-3">
+        <div>
+            <h3 class="text-sm font-semibold text-slate-900">Cover Kegiatan</h3>
+            <p class="text-xs text-slate-500">Format: JPEG, PNG, WEBP (Maksimal 5MB, Rasio 16:9)</p>
+        </div>
 
-        <!-- Preview Cover -->
-        <div class="mb-3 flex items-center gap-4">
+        <div class="flex flex-col sm:flex-row items-start gap-4">
+            <!-- Preview Cover -->
             <div x-ref="coverPreviewBox" id="cover-preview-box" class="relative w-40 h-24 rounded-xl overflow-hidden border border-slate-300 shrink-0 shadow-xs {{ $coverUrl ? '' : 'hidden' }}">
                 <img x-ref="coverPreviewImg" id="cover-preview-img" src="{{ $coverUrl ?? '#' }}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/600x400/e2e8f0/64748b?text=Cover+Error';">
                 <div class="absolute bottom-0 inset-x-0 bg-slate-900/70 text-white text-[10px] text-center py-0.5 font-medium">Cover Aktif</div>
@@ -143,29 +149,36 @@
             <div x-ref="coverPreviewEmpty" id="cover-preview-empty" class="w-40 h-24 bg-slate-100 rounded-xl border border-dashed border-slate-300 flex items-center justify-center text-xs text-slate-400 font-medium shrink-0 {{ $coverUrl ? 'hidden' : '' }}">
                 Belum Ada
             </div>
-        </div>
 
-        <input type="file"
-               name="cover"
-               id="cover"
-               x-ref="coverInput"
-               accept="image/jpeg,image/png,image/webp"
-               @change="onCoverSelected($event)"
-               class="w-full text-sm text-slate-500 p-1 file:mr-3 file:py-1.5 file:px-3.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-300 rounded-xl cursor-pointer bg-slate-50/50 shadow-xs focus:outline-none flex items-center @error('cover') border-rose-300 bg-rose-50/30 @enderror">
-        @error('cover')
-            <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
-        @enderror
+            <div class="flex-1 w-full">
+                <label for="cover" class="flex flex-col items-center justify-center px-4 py-4 border-2 border-slate-300 border-dashed rounded-xl bg-slate-50/50 hover:bg-slate-100/80 transition cursor-pointer">
+                    <div class="flex items-center gap-2 text-indigo-600 text-xs font-semibold">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span>Pilih Gambar Cover Baru</span>
+                    </div>
+                    <span x-text="coverFileName ? coverFileName : 'Pilih file jika ingin mengubah cover'" class="text-[11px] text-slate-400 mt-1 truncate max-w-xs"></span>
+                    <input id="cover" name="cover" type="file" x-ref="coverInput" accept="image/jpeg,image/png,image/webp" class="hidden" @change="onCoverSelected($event)">
+                </label>
+                @error('cover')
+                    <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
+                @enderror
+            </div>
+        </div>
     </div>
 
     <!-- Gambar Galeri -->
-    <div class="pt-4 border-t border-slate-200">
-        <label class="block text-sm font-semibold text-slate-900 mb-1">Gambar Galeri (Dokumentasi)</label>
-        <p class="text-xs text-slate-400 mb-3">Format: JPEG, PNG, WEBP (Maksimal 5 gambar, Maks. 5MB per gambar)</p>
+    <div class="pt-4 border-t border-slate-200 space-y-3">
+        <div>
+            <h3 class="text-sm font-semibold text-slate-900">Gambar Galeri (Dokumentasi)</h3>
+            <p class="text-xs text-slate-500">Format: JPEG, PNG, WEBP (Maksimal 5 gambar, Maks. 5MB per gambar)</p>
+        </div>
 
         <!-- Galeri Foto Saat Ini -->
         @if (isset($act) && isset($act->galleries) && $act->galleries->count() > 0)
-            <div class="mb-4">
-                <span class="block text-xs font-semibold text-slate-600 mb-2">
+            <div class="space-y-2">
+                <span class="block text-xs font-semibold text-slate-600">
                     Foto Galeri Tersimpan (Klik foto untuk menandai batal/hapus):
                 </span>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -209,28 +222,30 @@
         @endif
 
         <!-- Dropzone Unggah Gambar Baru -->
-        <label for="images" class="mt-1 flex flex-col items-center justify-center px-4 py-6 border-2 border-slate-300 border-dashed rounded-2xl bg-slate-50/50 hover:bg-slate-100/80 transition-colors cursor-pointer">
-            <div class="space-y-1 text-center">
-                <svg class="mx-auto h-8 w-8 text-slate-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <div class="text-xs text-indigo-600 font-semibold">
-                    <span>Klik untuk pilih foto galeri baru</span>
+        <div>
+            <label for="images" class="mt-1 flex flex-col items-center justify-center px-4 py-6 border-2 border-slate-300 border-dashed rounded-2xl bg-slate-50/50 hover:bg-slate-100/80 transition-colors cursor-pointer">
+                <div class="space-y-1 text-center">
+                    <svg class="mx-auto h-8 w-8 text-slate-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div class="text-xs text-indigo-600 font-semibold">
+                        <span>Klik untuk pilih foto galeri baru</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">Maksimal total 5 gambar (Maks. 5MB per file, format JPEG/PNG/WebP)</p>
                 </div>
-                <p class="text-[11px] text-slate-400">Maksimal total 5 gambar (Maks. 5MB per file, format JPEG/PNG/WebP)</p>
-            </div>
-            <input id="images" name="images[]" type="file" multiple accept="image/jpeg,image/png,image/webp" class="hidden" onchange="previewImages(event)">
-        </label>
+                <input id="images" name="images[]" type="file" multiple accept="image/jpeg,image/png,image/webp" class="hidden" onchange="previewImages(event)">
+            </label>
 
-        <!-- Container Live Preview -->
-        <div id="image-preview-container" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 mt-3 hidden"></div>
+            <!-- Container Live Preview -->
+            <div id="image-preview-container" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 mt-3 hidden"></div>
 
-        @error('images')
-            <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
-        @enderror
-        @error('images.*')
-            <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
-        @enderror
+            @error('images')
+                <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
+            @enderror
+            @error('images.*')
+                <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
+            @enderror
+        </div>
     </div>
 </div>
 

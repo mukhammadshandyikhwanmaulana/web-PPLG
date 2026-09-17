@@ -35,7 +35,7 @@
             rows="5"
             required
             placeholder="Tuliskan jawaban lengkap..."
-            class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition resize-none @error('answer') border-rose-300 bg-rose-50/30 @enderror"
+            class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition resize-y @error('answer') border-rose-300 bg-rose-50/30 @enderror"
         >{{ old('answer', $faq->answer ?? '') }}</textarea>
         @error('answer')
             <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>

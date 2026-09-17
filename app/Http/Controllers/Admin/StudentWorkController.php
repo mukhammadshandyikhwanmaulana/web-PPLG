@@ -13,7 +13,6 @@ use App\Models\StudentWork;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -23,7 +22,8 @@ class StudentWorkController extends Controller
     {
         $query = StudentWork::query()->with([
             'supervisor', 
-            'cover', 
+            'cover',
+            'creator',
             'galleries' => function ($q) {
                 $q->where('is_cover', false)->with('media');
             }
@@ -57,7 +57,7 @@ class StudentWorkController extends Controller
             ->withQueryString();
 
         $supervisors = StaffMember::query()
-            ->when(method_exists(StaffMember::class, 'scopeActive'), fn($q) => $q->active(), fn($q) => $q->where('is_active', true))
+            ->active()
             ->when($supervisorId, fn($q) => $q->orWhere('id', $supervisorId))
             ->orderBy('name')
             ->get();
@@ -68,7 +68,7 @@ class StudentWorkController extends Controller
     public function create(): View
     {
         $supervisors = StaffMember::query()
-            ->when(method_exists(StaffMember::class, 'scopeActive'), fn($q) => $q->active(), fn($q) => $q->where('is_active', true))
+            ->active()
             ->orderBy('name')
             ->get();
 
@@ -100,6 +100,7 @@ class StudentWorkController extends Controller
             $publishedAt = ($statusValue === PublishStatus::Published->value) ? now() : null;
 
             $studentWork = StudentWork::create([
+                'user_id'          => auth()->id(),
                 'title'            => $title,
                 'slug'             => $slug,
                 'description'      => $description,
@@ -132,9 +133,9 @@ class StudentWorkController extends Controller
 
     public function edit(StudentWork $studentWork): View
     {
-        $studentWork->load(['cover', 'galleries.media']);
+        $studentWork->load(['cover', 'galleries.media', 'creator']);
         $supervisors = StaffMember::query()
-            ->when(method_exists(StaffMember::class, 'scopeActive'), fn($q) => $q->active(), fn($q) => $q->where('is_active', true))
+            ->active()
             ->when($studentWork->supervisor_id, fn($q) => $q->orWhere('id', $studentWork->supervisor_id))
             ->orderBy('name')
             ->get();
@@ -146,9 +147,8 @@ class StudentWorkController extends Controller
     {
         $data = $request->validated();
         $removeIds = $data['remove_gallery_ids'] ?? [];
-        $filesToDelete = [];
 
-        DB::transaction(function () use ($request, $data, $removeIds, $studentWork, &$filesToDelete) {
+        DB::transaction(function () use ($request, $data, $removeIds, $studentWork) {
             $title = $data['title'];
             $description = $data['description'] ?? null;
 
@@ -186,7 +186,6 @@ class StudentWorkController extends Controller
                 if ($studentWork->cover_media_id) {
                     $oldMedia = Media::find($studentWork->cover_media_id);
                     if ($oldMedia) {
-                        $filesToDelete[] = ['disk' => $oldMedia->disk, 'path' => $oldMedia->path];
                         $oldMedia->forceDelete();
                     }
                 }
@@ -195,7 +194,7 @@ class StudentWorkController extends Controller
 
             $studentWork->update($updateData);
 
-            $this->syncGalleries($studentWork, $mediaIds, $removeIds, $filesToDelete);
+            $this->syncGalleries($studentWork, $mediaIds, $removeIds);
 
             if (! $studentWork->cover_media_id && $studentWork->galleries()->exists()) {
                 $firstGallery = $studentWork->galleries()->first();
@@ -208,30 +207,20 @@ class StudentWorkController extends Controller
             $this->updateExistingMediaAltText($studentWork, $title, $description);
         });
 
-        foreach ($filesToDelete as $file) {
-            if (!empty($file['path'])) {
-                Storage::disk($file['disk'] ?? 'public')->delete($file['path']);
-            }
-        }
-
         return redirect()->route('admin.karya-siswa.index')->with('success', 'Karya Siswa berhasil diperbarui.');
     }
 
     public function destroy(StudentWork $studentWork): RedirectResponse
     {
-        $filesToDelete = [];
-
-        DB::transaction(function () use ($studentWork, &$filesToDelete) {
+        DB::transaction(function () use ($studentWork) {
             $studentWork->load(['galleries.media', 'cover']);
 
             if ($studentWork->cover) {
-                $filesToDelete[] = ['disk' => $studentWork->cover->disk, 'path' => $studentWork->cover->path];
                 $studentWork->cover->forceDelete();
             }
 
             foreach ($studentWork->galleries as $gallery) {
                 if ($gallery->media) {
-                    $filesToDelete[] = ['disk' => $gallery->media->disk, 'path' => $gallery->media->path];
                     $gallery->media->forceDelete();
                 }
                 $gallery->delete();
@@ -239,12 +228,6 @@ class StudentWorkController extends Controller
 
             $studentWork->forceDelete();
         });
-
-        foreach ($filesToDelete as $file) {
-            if (!empty($file['path'])) {
-                Storage::disk($file['disk'] ?? 'public')->delete($file['path']);
-            }
-        }
 
         return redirect()->route('admin.karya-siswa.index')->with('success', 'Karya Siswa berhasil dihapus permanen.');
     }
@@ -286,7 +269,7 @@ class StudentWorkController extends Controller
         return $mediaIds;
     }
 
-    protected function syncGalleries(StudentWork $studentWork, array $newMediaIds, array $removeGalleryIds, array &$filesToDelete = []): void
+    protected function syncGalleries(StudentWork $studentWork, array $newMediaIds, array $removeGalleryIds): void
     {
         if (! empty($removeGalleryIds)) {
             $galleriesToRemove = $studentWork->galleries()
@@ -296,7 +279,6 @@ class StudentWorkController extends Controller
 
             foreach ($galleriesToRemove as $gallery) {
                 if ($gallery->media) {
-                    $filesToDelete[] = ['disk' => $gallery->media->disk, 'path' => $gallery->media->path];
                     $gallery->media->forceDelete();
                 }
                 $gallery->delete();
@@ -322,7 +304,6 @@ class StudentWorkController extends Controller
             $excessGalleries = $allGalleries->slice(5);
             foreach ($excessGalleries as $extra) {
                 if ($extra->media) {
-                    $filesToDelete[] = ['disk' => $extra->media->disk, 'path' => $extra->media->path];
                     $extra->media->forceDelete();
                 }
                 $extra->delete();

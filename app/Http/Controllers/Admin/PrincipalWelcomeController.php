@@ -17,7 +17,7 @@ class PrincipalWelcomeController extends Controller
         $welcome = PrincipalWelcome::with(['staffMember.photo'])->first();
 
         if (! $welcome) {
-            $firstStaff = StaffMember::where('is_active', true)->first();
+            $firstStaff = StaffMember::active()->first();
             
             $welcome = PrincipalWelcome::create([
                 'staff_member_id' => $firstStaff?->id,
@@ -25,7 +25,7 @@ class PrincipalWelcomeController extends Controller
             ]);
         }
 
-        $staffMembers = StaffMember::where('is_active', true)
+        $staffMembers = StaffMember::active()
             ->orderBy('name')
             ->get();
 

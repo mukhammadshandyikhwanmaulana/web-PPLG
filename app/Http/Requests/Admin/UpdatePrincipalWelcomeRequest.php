@@ -2,13 +2,24 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdatePrincipalWelcomeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->check() && auth()->user()->hasRole('admin');
+        if (! auth()->check()) return false;
+        $user = auth()->user();
+
+        $adminRole = UserRole::Admin->value;
+
+        if (method_exists($user, 'hasRole')) {
+            return $user->hasRole($adminRole);
+        }
+
+        $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
+        return $userRole === $adminRole;
     }
 
     protected function prepareForValidation(): void
@@ -16,12 +27,13 @@ class UpdatePrincipalWelcomeRequest extends FormRequest
         $rawContent = $this->input('content');
 
         if ($rawContent) {
-            // Decode berulang jika teks mengalami URL encoding bertumpuk (%253D, %26, dll)
-            while (str_contains($rawContent, '%25') || str_contains($rawContent, '%3D') || str_contains($rawContent, '%26')) {
+            $iteration = 0;
+            // Decode berulang secara aman (maksimal 3x) untuk mencegah infinite loop
+            while ($iteration < 3 && (str_contains($rawContent, '%25') || str_contains($rawContent, '%3D') || str_contains($rawContent, '%26'))) {
                 $rawContent = urldecode($rawContent);
+                $iteration++;
             }
 
-            // Jika teks diawali/mengandung pecahan query string (_token=...&content=...), ambil isi teks murni paling akhir
             if (str_contains($rawContent, 'content=')) {
                 $parts = explode('content=', $rawContent);
                 $rawContent = end($parts);

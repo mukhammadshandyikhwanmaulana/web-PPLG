@@ -81,9 +81,9 @@ class HomeController extends Controller
             ->take(6)
             ->values();
 
+        // Ambil SELURUH Data Fasilitas (Tanpa dibatasi ->take(6) agar realtime dengan Admin)
         $facilities = Facility::with('photo')
             ->orderBy('sort_order')
-            ->take(6)
             ->get();
 
         $partners = IndustryPartner::with('logo')

@@ -12,6 +12,8 @@ class ActivityLog extends Model
 
     const UPDATED_AT = null;
 
+    protected $table = 'activity_logs';
+
     protected $fillable = [
         'user_id',
         'action',
@@ -27,6 +29,7 @@ class ActivityLog extends Model
     {
         return [
             'user_id'    => 'integer',
+            'subject_id' => 'integer',
             'properties' => 'array',
             'created_at' => 'datetime',
         ];

@@ -12,7 +12,6 @@ use App\Models\Media;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -20,7 +19,7 @@ class AchievementController extends Controller
 {
     public function index(Request $request): View
     {
-        $achievements = Achievement::with('document')
+        $achievements = Achievement::with(['document', 'creator'])
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->input('search'));
                 $query->where(function ($q) use ($search) {
@@ -53,17 +52,11 @@ class AchievementController extends Controller
             $data = $request->validated();
             $mediaId = $this->storeDocumentIfPresent($request);
 
-            $rawStatus = $data['status'] ?? '';
-            $status = $rawStatus instanceof PublishStatus 
-                ? $rawStatus 
-                : (PublishStatus::tryFrom((string)$rawStatus) ?? PublishStatus::Draft);
-
-            $rawLevel = $data['level'] ?? null;
-            $level = $rawLevel instanceof AchievementLevel 
-                ? $rawLevel 
-                : ($rawLevel ? AchievementLevel::tryFrom((string)$rawLevel) : null);
+            $status = $data['status'] ?? PublishStatus::Draft;
+            $level = $data['level'] ?? null;
 
             Achievement::create([
+                'user_id'           => auth()->id(),
                 'title'             => $data['title'],
                 'slug'              => $this->generateUniqueSlug($data['title']),
                 'achievement_date'  => $data['achievement_date'] ?? null,
@@ -72,7 +65,7 @@ class AchievementController extends Controller
                 'description'       => $data['description'] ?? null,
                 'document_media_id' => $mediaId,
                 'status'            => $status,
-                'published_at'      => $status === PublishStatus::Published ? now() : null,
+                'published_at'      => ($status === PublishStatus::Published || $status === PublishStatus::Published->value) ? now() : null,
                 'created_by'        => auth()->id(),
                 'updated_by'        => auth()->id(),
             ]);
@@ -83,27 +76,18 @@ class AchievementController extends Controller
 
     public function edit(Achievement $achievement): View
     {
-        $achievement->loadMissing('document');
+        $achievement->loadMissing(['document', 'creator']);
         return view('admin.prestasi.edit', compact('achievement'));
     }
 
     public function update(UpdateAchievementRequest $request, Achievement $achievement): RedirectResponse
     {
-        $oldMedia = null;
-
-        DB::transaction(function () use ($request, $achievement, &$oldMedia) {
+        DB::transaction(function () use ($request, $achievement) {
             $data = $request->validated();
             $newMediaId = $this->storeDocumentIfPresent($request);
 
-            $rawStatus = $data['status'] ?? '';
-            $status = $rawStatus instanceof PublishStatus 
-                ? $rawStatus 
-                : (PublishStatus::tryFrom((string)$rawStatus) ?? $achievement->status);
-
-            $rawLevel = $data['level'] ?? null;
-            $level = $rawLevel instanceof AchievementLevel 
-                ? $rawLevel 
-                : ($rawLevel ? AchievementLevel::tryFrom((string)$rawLevel) : $achievement->level);
+            $status = $data['status'] ?? $achievement->status;
+            $level = $data['level'] ?? $achievement->level;
 
             $updateData = [
                 'title'            => $data['title'],
@@ -116,13 +100,16 @@ class AchievementController extends Controller
                 'updated_by'       => auth()->id(),
             ];
 
-            if ($status === PublishStatus::Published && $achievement->published_at === null) {
+            if (($status === PublishStatus::Published || $status === PublishStatus::Published->value) && $achievement->published_at === null) {
                 $updateData['published_at'] = now();
             }
 
             if ($newMediaId !== null) {
                 if ($achievement->document_media_id) {
                     $oldMedia = Media::find($achievement->document_media_id);
+                    if ($oldMedia) {
+                        $oldMedia->forceDelete();
+                    }
                 }
                 $updateData['document_media_id'] = $newMediaId;
             } else {
@@ -138,36 +125,17 @@ class AchievementController extends Controller
             $achievement->update($updateData);
         });
 
-        if ($oldMedia) {
-            $isUsedElsewhere = Achievement::withTrashed()
-                ->where('document_media_id', $oldMedia->id)
-                ->where('id', '!=', $achievement->id)
-                ->exists();
-
-            if (! $isUsedElsewhere) {
-                Storage::disk($oldMedia->disk ?? 'public')->delete($oldMedia->path);
-                $oldMedia->forceDelete();
-            }
-        }
-
         return redirect()->route('admin.prestasi.index')->with('success', 'Prestasi berhasil diperbarui.');
     }
 
     public function destroy(Achievement $achievement): RedirectResponse
     {
-        $oldMedia = $achievement->document;
-
         DB::transaction(function () use ($achievement) {
+            if ($achievement->document) {
+                $achievement->document->forceDelete();
+            }
             $achievement->forceDelete();
         });
-
-        if ($oldMedia) {
-            $isUsedElsewhere = Achievement::withTrashed()->where('document_media_id', $oldMedia->id)->exists();
-            if (! $isUsedElsewhere) {
-                Storage::disk($oldMedia->disk ?? 'public')->delete($oldMedia->path);
-                $oldMedia->forceDelete();
-            }
-        }
 
         return redirect()->route('admin.prestasi.index')->with('success', 'Prestasi berhasil dihapus permanen.');
     }

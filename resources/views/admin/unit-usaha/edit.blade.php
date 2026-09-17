@@ -91,7 +91,7 @@
                 </div>
             </div>
 
-            {{-- Label Navigasi --}}
+            <!-- Label Navigasi -->
             <div>
                 <label for="label_input" class="block text-sm font-semibold text-slate-900 mb-1.5">
                     Label Navigasi <span x-show="isActive" class="text-rose-500 ml-0.5">*</span>
@@ -107,7 +107,7 @@
                 @enderror
             </div>
 
-            {{-- URL Eksternal --}}
+            <!-- URL Eksternal -->
             <div>
                 <label for="external_url_input" class="block text-sm font-semibold text-slate-900 mb-1.5">
                     URL Eksternal <span x-show="isActive" class="text-rose-500 ml-0.5">*</span>
@@ -117,14 +117,14 @@
                        :required="isActive"
                        maxlength="255"
                        placeholder="https://unitusaha.smk.sch.id"
-                       class="w-full rounded-xl border text-sm px-3.5 py-2.5 transition focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 @error('external_url') border-rose-300 bg-rose-50/30 @else border-slate-300 @enderror">
+                       class="w-full rounded-xl border text-sm px-3.5 py-2.5 transition focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 @error('external_url') border-rose-300 bg-rose-50/30 @enderror">
                 <p class="text-xs text-slate-400 mt-1.5">Wajib diawali <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-600 font-mono">http://</code> atau <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-600 font-mono">https://</code></p>
                 @error('external_url')
                     <p class="text-rose-600 text-xs mt-1.5 font-medium">{{ $message }}</p>
                 @enderror
             </div>
 
-            {{-- Toggle Aktif --}}
+            <!-- Toggle Aktif -->
             <div class="pt-4 border-t border-slate-100 flex items-center justify-between gap-4">
                 <input type="hidden" name="is_active" :value="isActive ? 1 : 0">
                 <div class="cursor-pointer select-none flex-1" @click="isActive = !isActive">

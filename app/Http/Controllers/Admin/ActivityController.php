@@ -13,7 +13,6 @@ use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -21,7 +20,7 @@ class ActivityController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Activity::query()->with(['cover', 'galleries.media']);
+        $query = Activity::query()->with(['cover', 'galleries.media', 'creator']);
 
         if ($search = trim((string) $request->query('search'))) {
             $query->where('title', 'like', "%{$search}%");
@@ -68,6 +67,7 @@ class ActivityController extends Controller
             $publishedAt = ($statusValue === PublishStatus::Published->value) ? now() : null;
 
             $activity = Activity::create([
+                'user_id'        => auth()->id(),
                 'title'          => $title,
                 'slug'           => $slug,
                 'event_date'     => $data['event_date'],
@@ -102,7 +102,7 @@ class ActivityController extends Controller
 
     public function edit(Activity $activity): View
     {
-        $activity->load(['cover', 'galleries.media']);
+        $activity->load(['cover', 'galleries.media', 'creator']);
         return view('admin.kegiatan.edit', compact('activity'));
     }
 
@@ -110,9 +110,8 @@ class ActivityController extends Controller
     {
         $data = $request->validated();
         $removeIds = $data['remove_gallery_ids'] ?? [];
-        $filesToDelete = [];
 
-        DB::transaction(function () use ($request, $data, $removeIds, $activity, &$filesToDelete) {
+        DB::transaction(function () use ($request, $data, $removeIds, $activity) {
             $title = $data['title'];
             $content = $data['content'] ?? null;
 
@@ -147,7 +146,6 @@ class ActivityController extends Controller
                 if ($activity->cover_media_id) {
                     $oldMedia = Media::find($activity->cover_media_id);
                     if ($oldMedia) {
-                        $filesToDelete[] = ['disk' => $oldMedia->disk, 'path' => $oldMedia->path];
                         $oldMedia->forceDelete();
                     }
                 }
@@ -156,7 +154,7 @@ class ActivityController extends Controller
 
             $activity->update($updateData);
 
-            $this->syncGalleries($activity, $galleryMediaIds, $removeIds, $filesToDelete);
+            $this->syncGalleries($activity, $galleryMediaIds, $removeIds);
 
             $activity->unsetRelation('galleries');
             if (! $activity->cover_media_id && $activity->galleries()->exists()) {
@@ -178,30 +176,21 @@ class ActivityController extends Controller
             }
         });
 
-        foreach ($filesToDelete as $file) {
-            if (!empty($file['path'])) {
-                Storage::disk($file['disk'] ?? 'public')->delete($file['path']);
-            }
-        }
-
         return redirect()->route('admin.kegiatan.index')->with('success', 'Kegiatan berhasil diperbarui.');
     }
 
     public function destroy(Activity $activity): RedirectResponse
     {
-        $filesToDelete = [];
         $activityTitle = $activity->title;
 
-        DB::transaction(function () use ($activity, &$filesToDelete, $activityTitle) {
+        DB::transaction(function () use ($activity, $activityTitle) {
             if ($activity->cover) {
-                $filesToDelete[] = ['disk' => $activity->cover->disk, 'path' => $activity->cover->path];
                 $activity->cover->forceDelete();
             }
 
             $galleries = $activity->galleries()->with('media')->get();
             foreach ($galleries as $gallery) {
                 if ($gallery->media) {
-                    $filesToDelete[] = ['disk' => $gallery->media->disk, 'path' => $gallery->media->path];
                     $gallery->media->forceDelete();
                 }
                 $gallery->delete();
@@ -216,12 +205,6 @@ class ActivityController extends Controller
                 );
             }
         });
-
-        foreach ($filesToDelete as $file) {
-            if (!empty($file['path'])) {
-                Storage::disk($file['disk'] ?? 'public')->delete($file['path']);
-            }
-        }
 
         return redirect()->route('admin.kegiatan.index')->with('success', 'Kegiatan berhasil dihapus secara permanen beserta berkas medianya.');
     }
@@ -263,13 +246,12 @@ class ActivityController extends Controller
         return $mediaIds;
     }
 
-    protected function syncGalleries(Activity $activity, array $newMediaIds, array $removeGalleryIds, array &$filesToDelete = []): void
+    protected function syncGalleries(Activity $activity, array $newMediaIds, array $removeGalleryIds): void
     {
         if (! empty($removeGalleryIds)) {
             $galleriesToRemove = $activity->galleries()->whereIn('id', $removeGalleryIds)->with('media')->get();
             foreach ($galleriesToRemove as $gallery) {
                 if ($gallery->media) {
-                    $filesToDelete[] = ['disk' => $gallery->media->disk, 'path' => $gallery->media->path];
                     $gallery->media->forceDelete();
                 }
                 $gallery->delete();

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,24 +30,36 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    // Mengurangi beban N+1 query dengan tidak memasukkan role_name ke $appends global
     protected $appends = [
         'avatar_url',
-        'role_name',
     ];
 
+    /**
+     * Accessor Foto Profil / Avatar yang Aman
+     */
     protected function avatarUrl(): Attribute
     {
         return Attribute::make(
             get: function () {
-                if (! empty($this->avatar)) {
-                    $v = $this->updated_at ? $this->updated_at->timestamp : time();
-                    return Storage::disk('public')->url($this->avatar) . '?v=' . $v;
+                if (empty($this->avatar)) {
+                    return null;
                 }
-                return null;
+
+                // Jika avatar sudah berupa URL eksternal (http/https)
+                if (filter_var($this->avatar, FILTER_VALIDATE_URL)) {
+                    return $this->avatar;
+                }
+
+                $v = $this->updated_at ? $this->updated_at->timestamp : time();
+                return Storage::disk('public')->url($this->avatar) . '?v=' . $v;
             }
         );
     }
 
+    /**
+     * Accessor Nama Role (Hanya dipanggil sesuai kebutuhan tanpa memicu N+1 Query)
+     */
     protected function roleName(): Attribute
     {
         return Attribute::make(
@@ -54,13 +67,10 @@ class User extends Authenticatable
                 if ($this->relationLoaded('roles') && $this->roles->isNotEmpty()) {
                     return $this->roles->first()->name;
                 }
-                
-                if (method_exists($this, 'getRoleNames')) {
-                    $roleName = $this->getRoleNames()->first();
-                    if ($roleName) return $roleName;
-                }
 
-                return $this->role ?? 'Admin';
+                return $this->role instanceof UserRole 
+                    ? $this->role->value 
+                    : ($this->role ?? 'guru');
             }
         );
     }
@@ -71,6 +81,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
             'is_active'         => 'boolean',
+            'role'              => UserRole::class, // Cast otomatis ke Enum UserRole
         ];
     }
 

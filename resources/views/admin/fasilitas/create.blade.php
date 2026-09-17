@@ -36,13 +36,19 @@
                     }
 
                     // Panggil Event Cropper Modal Global (Rasio 4:3 untuk Fasilitas)
-                    $dispatch('open-cropper', {
-                        title: 'Potong Foto Fasilitas (4:3)',
-                        aspectRatio: 4 / 3,
-                        file: file,
-                        targetInput: $refs.photoInput,
-                        targetPreview: $refs.photoPreviewImg
-                    });
+                    window.dispatchEvent(new CustomEvent('open-cropper', {
+                        detail: {
+                            title: 'Potong Foto Fasilitas (4:3)',
+                            aspectRatio: 4 / 3,
+                            file: file,
+                            targetInput: $refs.photoInput,
+                            onCropComplete: (croppedFile) => {
+                                if ($refs.photoPreviewImg) {
+                                    $refs.photoPreviewImg.src = URL.createObjectURL(croppedFile);
+                                }
+                            }
+                        }
+                    }));
 
                     this.hasImage = true;
                 }
@@ -68,7 +74,7 @@
             {{-- Deskripsi --}}
             <div>
                 <label for="description" class="block text-sm font-semibold text-slate-900 mb-1.5">Deskripsi</label>
-                <textarea name="description" id="description" rows="4" placeholder="Jelaskan secara singkat mengenai fasilitas ini..." class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition resize-none @error('description') border-rose-300 bg-rose-50/30 @enderror">{{ old('description') }}</textarea>
+                <textarea name="description" id="description" rows="4" placeholder="Jelaskan secara singkat mengenai fasilitas ini..." class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition resize-y @error('description') border-rose-300 bg-rose-50/30 @enderror">{{ old('description') }}</textarea>
                 @error('description') <p class="text-rose-600 text-xs mt-1.5 font-medium">{{ $message }}</p> @enderror
             </div>
 
@@ -105,7 +111,7 @@
             {{-- Area Tombol CTA --}}
             <div class="pt-5 border-t border-slate-200 flex items-center justify-between sm:justify-end gap-3">
                 <a href="{{ route('admin.fasilitas.index') }}" 
-                   class="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition text-center">
+                   class="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition text-center shrink-0">
                     Batal
                 </a>
                 <button type="submit" 

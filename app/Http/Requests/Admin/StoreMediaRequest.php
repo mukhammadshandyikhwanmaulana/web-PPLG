@@ -2,13 +2,24 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreMediaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->check() && auth()->user()->hasRole('admin');
+        if (! auth()->check()) return false;
+        $user = auth()->user();
+
+        $allowedRoles = [UserRole::Admin->value, UserRole::Guru->value];
+
+        if (method_exists($user, 'hasAnyRole')) {
+            return $user->hasAnyRole($allowedRoles);
+        }
+
+        $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
+        return in_array($userRole, $allowedRoles, true);
     }
 
     protected function prepareForValidation(): void

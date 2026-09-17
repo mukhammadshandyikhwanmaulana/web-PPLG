@@ -4,13 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
 
 class BannerController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $banners = Banner::orderBy('order', 'asc')
             ->orderBy('created_at', 'desc')
@@ -19,12 +21,12 @@ class BannerController extends Controller
         return view('admin.banner.index', compact('banners'));
     }
 
-    public function create()
+    public function create(): View
     {
         return view('admin.banner.create');
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'image'     => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
@@ -57,12 +59,12 @@ class BannerController extends Controller
         return redirect()->route('admin.banner.index')->with('success', 'Gambar Hero berhasil ditambahkan!');
     }
 
-    public function edit(Banner $banner)
+    public function edit(Banner $banner): View
     {
         return view('admin.banner.edit', compact('banner'));
     }
 
-    public function update(Request $request, Banner $banner)
+    public function update(Request $request, Banner $banner): RedirectResponse
     {
         $request->validate([
             'image'     => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
@@ -91,7 +93,7 @@ class BannerController extends Controller
         return redirect()->route('admin.banner.index')->with('success', 'Gambar Hero berhasil diperbarui!');
     }
 
-    public function destroy(Banner $banner)
+    public function destroy(Banner $banner): RedirectResponse
     {
         DB::transaction(function () use ($banner) {
             if ($banner->image_path && Storage::disk('public')->exists($banner->image_path)) {

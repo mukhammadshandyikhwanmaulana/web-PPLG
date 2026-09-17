@@ -21,9 +21,19 @@
 
 <div class="space-y-5">
     <!-- Input Tersembunyi Otomatis untuk ID Galeri yang Dihapus -->
-    <template x-for="id in removedGalleries" :key="id">
+    <template x-for="id in (typeof removedGalleries !== 'undefined' ? removedGalleries : [])" :key="id">
         <input type="hidden" name="remove_gallery_ids[]" :value="id">
     </template>
+
+    {{-- Alert Error Validation Global --}}
+    @if($errors->any())
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-medium flex items-center gap-2 shadow-xs">
+            <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Mohon periksa kembali inputan Anda. Beberapa bidang belum terisi dengan benar.</span>
+        </div>
+    @endif
 
     {{-- Judul Karya --}}
     <div>
@@ -161,14 +171,14 @@
                         @if ($galUrl)
                             <div @click="toggleRemoveGallery({{ $gallery->id }})"
                                  class="relative group rounded-xl overflow-hidden border-2 cursor-pointer transition-all duration-150 h-24 select-none"
-                                 :class="removedGalleries.includes({{ $gallery->id }}) ? 'border-rose-400 ring-2 ring-rose-300/60' : 'border-slate-200 hover:border-indigo-400'">
+                                 :class="(typeof removedGalleries !== 'undefined' && removedGalleries.includes({{ $gallery->id }})) ? 'border-rose-400 ring-2 ring-rose-300/60' : 'border-slate-200 hover:border-indigo-400'">
                                 
                                 <img src="{{ $galUrl }}" 
                                      onerror="this.onerror=null; this.src='https://placehold.co/600x400/e2e8f0/64748b?text=Foto+Galeri';"
                                      class="w-full h-full object-cover">
                                 
                                 {{-- Overlay Hapus --}}
-                                <div x-show="removedGalleries.includes({{ $gallery->id }})" 
+                                <div x-show="typeof removedGalleries !== 'undefined' && removedGalleries.includes({{ $gallery->id }})" 
                                      class="absolute inset-0 bg-rose-950/60 backdrop-blur-[1px] flex flex-col items-center justify-center text-white text-xs font-semibold gap-1 p-2 text-center transition" x-cloak>
                                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -177,7 +187,7 @@
                                 </div>
 
                                 {{-- Icon Silang 'X' --}}
-                                <div x-show="!removedGalleries.includes({{ $gallery->id }})" 
+                                <div x-show="typeof removedGalleries === 'undefined' || !removedGalleries.includes({{ $gallery->id }})" 
                                      class="absolute top-1.5 right-1.5 bg-slate-900/60 text-white rounded-full p-1 opacity-80 group-hover:opacity-100 transition hover:bg-rose-600 shadow-xs">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -229,7 +239,6 @@
             return;
         }
 
-        // Panggil Cropper Modal Global untuk Gambar Cover Utama (Rasio 16:9)
         window.dispatchEvent(new CustomEvent('open-cropper', {
             detail: {
                 title: 'Potong Sampul Utama Karya Siswa',

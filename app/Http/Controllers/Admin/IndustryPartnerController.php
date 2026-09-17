@@ -11,7 +11,6 @@ use App\Models\Media;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class IndustryPartnerController extends Controller
@@ -35,16 +34,21 @@ class IndustryPartnerController extends Controller
         return view('admin.mitra.index', compact('partners'));
     }
 
-    public function create(): View { return view('admin.mitra.create'); }
+    public function create(): View 
+    { 
+        return view('admin.mitra.create'); 
+    }
 
     public function store(StoreIndustryPartnerRequest $request): RedirectResponse
     {
         $data = $request->validated();
+
         DB::transaction(function () use ($request, $data) {
             $mediaId = $this->storeLogoIfPresent($request);
-            $rawStatus = $data['status'] ?? '';
-            $status = $rawStatus instanceof PublishStatus ? $rawStatus : (PublishStatus::tryFrom((string)$rawStatus) ?? PublishStatus::Draft);
-            $sortOrder = (isset($data['sort_order']) && $data['sort_order'] !== null && $data['sort_order'] !== '') ? (int) $data['sort_order'] : (IndustryPartner::max('sort_order') ?? 0) + 1;
+            $status = $data['status'] ?? PublishStatus::Draft;
+            $sortOrder = (isset($data['sort_order']) && $data['sort_order'] !== null && $data['sort_order'] !== '') 
+                ? (int) $data['sort_order'] 
+                : (IndustryPartner::max('sort_order') ?? 0) + 1;
 
             IndustryPartner::create([
                 'name'          => $data['name'],
@@ -52,7 +56,7 @@ class IndustryPartnerController extends Controller
                 'logo_media_id' => $mediaId,
                 'sort_order'    => $sortOrder,
                 'status'        => $status,
-                'published_at'  => $status === PublishStatus::Published ? now() : null,
+                'published_at'  => ($status === PublishStatus::Published || $status === PublishStatus::Published->value) ? now() : null,
                 'created_by'    => auth()->id(),
                 'updated_by'    => auth()->id(),
             ]);
@@ -62,6 +66,7 @@ class IndustryPartnerController extends Controller
         if (empty($data['website_url'])) {
             $message .= ' (Catatan: Disarankan melengkapi link website agar pengunjung web sekolah bisa langsung menuju profil resmi mitra).';
         }
+
         return redirect()->route('admin.mitra.index')->with('success', $message);
     }
 
@@ -74,13 +79,13 @@ class IndustryPartnerController extends Controller
     public function update(UpdateIndustryPartnerRequest $request, IndustryPartner $industryPartner): RedirectResponse
     {
         $data = $request->validated();
-        $filesToDelete = [];
 
-        DB::transaction(function () use ($request, $industryPartner, $data, &$filesToDelete) {
+        DB::transaction(function () use ($request, $industryPartner, $data) {
             $newMediaId = $this->storeLogoIfPresent($request);
-            $rawStatus = $data['status'] ?? '';
-            $status = $rawStatus instanceof PublishStatus ? $rawStatus : (PublishStatus::tryFrom((string)$rawStatus) ?? $industryPartner->status);
-            $sortOrder = (isset($data['sort_order']) && $data['sort_order'] !== null && $data['sort_order'] !== '') ? (int) $data['sort_order'] : $industryPartner->sort_order;
+            $status = $data['status'] ?? $industryPartner->status;
+            $sortOrder = (isset($data['sort_order']) && $data['sort_order'] !== null && $data['sort_order'] !== '') 
+                ? (int) $data['sort_order'] 
+                : $industryPartner->sort_order;
 
             $updateData = [
                 'name'        => $data['name'],
@@ -90,7 +95,7 @@ class IndustryPartnerController extends Controller
                 'updated_by'  => auth()->id(),
             ];
 
-            if ($status === PublishStatus::Published && $industryPartner->published_at === null) {
+            if (($status === PublishStatus::Published || $status === PublishStatus::Published->value) && $industryPartner->published_at === null) {
                 $updateData['published_at'] = now();
             }
 
@@ -98,7 +103,6 @@ class IndustryPartnerController extends Controller
                 if ($industryPartner->logo_media_id) {
                     $oldMedia = Media::find($industryPartner->logo_media_id);
                     if ($oldMedia) {
-                        $filesToDelete[] = ['disk' => $oldMedia->disk, 'path' => $oldMedia->path];
                         $oldMedia->forceDelete();
                     }
                 }
@@ -107,10 +111,6 @@ class IndustryPartnerController extends Controller
 
             $industryPartner->update($updateData);
         });
-
-        foreach ($filesToDelete as $file) {
-            Storage::disk($file['disk'] ?? 'public')->delete($file['path']);
-        }
 
         $message = 'Mitra berhasil diperbarui.';
         if (empty($data['website_url'])) {
@@ -122,20 +122,12 @@ class IndustryPartnerController extends Controller
 
     public function destroy(IndustryPartner $industryPartner): RedirectResponse
     {
-        $filesToDelete = [];
-
-        DB::transaction(function () use ($industryPartner, &$filesToDelete) {
+        DB::transaction(function () use ($industryPartner) {
             if ($industryPartner->logo) {
-                $filesToDelete[] = ['disk' => $industryPartner->logo->disk, 'path' => $industryPartner->logo->path];
                 $industryPartner->logo->forceDelete();
             }
-            
             $industryPartner->forceDelete();
         });
-
-        foreach ($filesToDelete as $file) {
-            Storage::disk($file['disk'] ?? 'public')->delete($file['path']);
-        }
 
         return redirect()->route('admin.mitra.index')->with('success', 'Mitra berhasil dihapus beserta logonya.');
     }
@@ -145,6 +137,7 @@ class IndustryPartnerController extends Controller
         if (! $request->hasFile('logo')) return null;
         $file = $request->file('logo');
         $path = $file->store('mitra', 'public');
+        
         $media = Media::create([
             'original_name' => $file->getClientOriginalName(),
             'file_name'     => $file->hashName(),
@@ -154,6 +147,7 @@ class IndustryPartnerController extends Controller
             'size'          => $file->getSize(),
             'created_by'    => auth()->id(),
         ]);
+        
         return $media->id;
     }
 }

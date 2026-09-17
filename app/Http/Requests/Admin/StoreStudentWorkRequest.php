@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\PublishStatus;
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,10 +14,14 @@ class StoreStudentWorkRequest extends FormRequest
         if (! auth()->check()) return false;
         $user = auth()->user();
 
-        $hasSpatieRole = method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['admin', 'guru', 'superadmin']);
-        $hasStringRole = in_array(strtolower($user->role ?? ''), ['admin', 'guru', 'superadmin']);
+        $allowedRoles = [UserRole::Admin->value, UserRole::Guru->value];
 
-        return $hasSpatieRole || $hasStringRole;
+        if (method_exists($user, 'hasAnyRole')) {
+            return $user->hasAnyRole($allowedRoles);
+        }
+
+        $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
+        return in_array($userRole, $allowedRoles, true);
     }
 
     protected function prepareForValidation(): void
@@ -28,7 +33,7 @@ class StoreStudentWorkRequest extends FormRequest
             'supervisor_id'    => $this->filled('supervisor_id') ? $this->supervisor_id : null,
             'demo_url'         => $this->filled('demo_url') ? trim((string) $this->demo_url) : null,
             'is_featured'      => $this->boolean('is_featured'),
-            'status'           => $this->filled('status') ? $this->status : (class_exists(PublishStatus::class) ? PublishStatus::Draft->value : 'draft'),
+            'status'           => $this->filled('status') ? $this->status : PublishStatus::Draft->value,
         ]);
     }
 
@@ -41,7 +46,7 @@ class StoreStudentWorkRequest extends FormRequest
             'supervisor_id'    => ['nullable', 'exists:staff_members,id'],
             'demo_url'         => ['nullable', 'url', 'max:255'],
             'is_featured'      => ['nullable', 'boolean'],
-            'status'           => ['required', class_exists(PublishStatus::class) ? Rule::enum(PublishStatus::class) : 'string'],
+            'status'           => ['required', Rule::enum(PublishStatus::class)],
             'cover'            => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
             'images'           => ['nullable', 'array', 'max:5'],
             'images.*'         => ['image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],

@@ -47,8 +47,9 @@ class StudentWorkController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
-        // Rekomendasi karya siswa lainnya
-        $otherWorks = StudentWork::published()
+        // Rekomendasi karya siswa lainnya (ditambahkan with(['cover', 'galleries.media']))
+        $otherWorks = StudentWork::with(['cover', 'galleries.media'])
+            ->published()
             ->where('id', '!=', $studentWork->id)
             ->orderByDesc('is_featured')
             ->orderByDesc('published_at')

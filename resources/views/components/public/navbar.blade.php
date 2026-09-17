@@ -6,10 +6,10 @@
             'bg-transparent py-1 text-white': !scrolled && !mobileOpen
         }"
         class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 font-sans">
-    
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-20 gap-4">
-            
+
             <!-- 1. BRAND / LOGO KIRI -->
             <div class="flex items-center shrink-0">
                 <a href="{{ route('home') }}" class="flex items-center gap-3.5 group">
@@ -17,7 +17,7 @@
                          alt="Logo PPLG" 
                          onerror="this.onerror=null; this.src='https://placehold.co/100x100/FB8C00/white?text=PPLG';"
                          class="w-10 h-10 object-contain group-hover:scale-105 transition duration-300">
-                    
+
                     <div class="h-8 w-px transition-colors duration-300" 
                          :class="(scrolled || mobileOpen) ? 'bg-slate-300' : 'bg-white/40'"></div>
 
@@ -36,7 +36,7 @@
 
             <!-- 2. NAVIGASI TENGAH (DESKTOP) -->
             <nav class="hidden lg:flex items-center justify-center gap-6 xl:gap-8 flex-1">
-                
+
                 {{-- BERANDA --}}
                 @php $activeHome = request()->routeIs('home'); @endphp
                 <a href="{{ route('home') }}" 
@@ -185,7 +185,7 @@
          x-transition:leave-end="opacity-0 -translate-y-2"
          x-cloak
          class="lg:hidden border-t border-slate-200/80 bg-white/95 backdrop-blur-xl px-4 pt-3 pb-5 space-y-1.5 text-slate-800 shadow-xl">
-        
+
         <div class="px-3 py-2 mb-2 border-b border-slate-100">
             <p class="text-xs font-black text-orange-600 tracking-tight">PPLG SMKN 1 BANGSRI</p>
             <p class="text-[11px] font-medium text-slate-500">Pengembangan Perangkat Lunak dan Gim</p>
@@ -202,6 +202,9 @@
                     @click="mobileAbout = !mobileAbout"
                     class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-orange-600 transition-all duration-150 cursor-pointer">
                 <span>Tentang Kami</span>
+                <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': mobileAbout }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
             </button>
             <div x-show="mobileAbout" x-cloak class="pl-4 pr-2 py-1 space-y-1 bg-slate-50/60 rounded-xl my-1">
                 <a href="{{ route('public.profile') }}#sejarah" @click="mobileOpen = false" class="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:text-orange-600">
@@ -245,7 +248,7 @@
                target="_blank" 
                rel="noopener noreferrer"
                class="block w-full text-center px-4 py-2.5 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-xs transition duration-200 tracking-wider">
-                Hubungi Kami
+                HUBUNGI KAMI
             </a>
         </div>
     </div>

@@ -21,30 +21,55 @@ class DatabaseSeeder extends Seeder
             RoleAndUserSeeder::class,
         ]);
 
-        // Ambil User Admin dan Staff Member Guru untuk nilai awal foreign key
-        $adminUser = User::where('email', 'admin@smkn1bangsri.sch.id')->first();
+        // Ambil User Admin utama (dengan fallback ke user pertama jika email berbeda)
+        $adminUser = User::where('email', 'admin@smkn1bangsri.sch.id')->first() ?? User::first();
+
+        // Ambil atau buat Staff Member default jika belum ada dari RoleAndUserSeeder
         $defaultStaff = StaffMember::first();
 
+        if (!$defaultStaff && $adminUser) {
+            $defaultStaff = StaffMember::create([
+                'user_id'   => $adminUser->id,
+                'name'      => 'Ketua Program Keahlian PPLG',
+                'position'  => 'Ketua Program Keahlian',
+                'nip'       => '-',
+                'is_active' => true,
+            ]);
+        }
+
         // 2. Inisialisasi Data Default Single-Row (Profil, Unit Usaha, & Sambutan KAJUR)
-        ProfileContent::firstOrCreate([], [
-            'about_excerpt'   => 'Selamat datang di website resmi kompetensi keahlian PPLG.',
-            'history_content' => 'Kompetensi Keahlian Pengembangan Perangkat Lunak dan Gim (PPLG) berdiri untuk menghasilkan tenaga terampil di bidang pemrograman dan teknologi.',
-            'vision_content'  => 'Menjadi program keahlian yang unggul, berkarakter, dan berdaya saing global di bidang rekayasa perangkat lunak dan gim.',
-            'mission_content' => 'Menyelenggarakan pembelajaran berbasis proyek (PBL) dan standar industri IT.',
-            'updated_by'      => $adminUser?->id,
-        ]);
+        
+        // Profile Content
+        ProfileContent::firstOrCreate(
+            ['id' => 1], // Mengunci ID 1 untuk single-row pattern
+            [
+                'about_excerpt'   => 'Selamat datang di website resmi kompetensi keahlian PPLG SMKN 1 Bangsri.',
+                'history_content' => 'Kompetensi Keahlian Pengembangan Perangkat Lunak dan Gim (PPLG) berdiri untuk menghasilkan tenaga terampil di bidang pemrograman dan teknologi.',
+                'vision_content'  => 'Menjadi program keahlian yang unggul, berkarakter, dan berdaya saing global di bidang rekayasa perangkat lunak dan gim.',
+                'mission_content' => 'Menyelenggarakan pembelajaran berbasis proyek (PBL) dan standar industri IT.',
+                'updated_by'      => $adminUser?->id,
+            ]
+        );
 
-        UnitUsahaLink::firstOrCreate([], [
-            'label'        => 'Unit Usaha PPLG',
-            'external_url' => 'https://smkn1bangsri.sch.id', // <-- DIUBAH MENJADI 'external_url'
-            'is_active'    => false,
-            'updated_by'   => $adminUser?->id,
-        ]);
+        // Unit Usaha Link
+        UnitUsahaLink::firstOrCreate(
+            ['id' => 1],
+            [
+                'label'        => 'Unit Usaha PPLG',
+                'external_url' => 'https://smkn1bangsri.sch.id',
+                'is_active'    => false,
+                'updated_by'   => $adminUser?->id,
+            ]
+        );
 
-        PrincipalWelcome::firstOrCreate([], [
-            'staff_member_id' => $defaultStaff?->id,
-            'content'         => 'Selamat datang di website resmi Jurusan Pengembangan Perangkat Lunak dan Gim (PPLG).',
-            'updated_by'      => $adminUser?->id,
-        ]);
+        // Principal Welcome (Sambutan Kaprog)
+        PrincipalWelcome::firstOrCreate(
+            ['id' => 1],
+            [
+                'staff_member_id' => $defaultStaff?->id,
+                'content'         => 'Selamat datang di website resmi Jurusan Pengembangan Perangkat Lunak dan Gim (PPLG) SMKN 1 Bangsri.',
+                'updated_by'      => $adminUser?->id,
+            ]
+        );
     }
 }

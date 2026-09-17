@@ -46,7 +46,7 @@
                 </div>
             </div>
 
-            {{-- Sejarah --}}
+            <!-- Sejarah -->
             <div>
                 <label for="history_content" class="block text-sm font-semibold text-slate-900 mb-1.5">
                     Sejarah Singkat Program Keahlian
@@ -59,7 +59,7 @@
                 @enderror
             </div>
 
-            {{-- Visi & Misi --}}
+            <!-- Visi & Misi -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                     <label for="vision_content" class="block text-sm font-semibold text-slate-900 mb-1.5">
@@ -86,7 +86,7 @@
                 </div>
             </div>
 
-            {{-- Ringkasan --}}
+            <!-- Ringkasan -->
             <div>
                 <label for="about_excerpt" class="block text-sm font-semibold text-slate-900 mb-1.5">
                     Ringkasan "Tentang PPLG" (Tampil di Beranda)

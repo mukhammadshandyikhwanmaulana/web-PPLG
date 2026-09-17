@@ -30,10 +30,9 @@
              this.isPdf = file.type === 'application/pdf';
 
              if (!this.isPdf && file.type.startsWith('image/')) {
-                 // Panggil Cropper Modal Global untuk file gambar
                  $dispatch('open-cropper', {
                      title: 'Potong Gambar Bukti Prestasi',
-                     aspectRatio: null, // Free ratio agar fleksibel mengikuti bentuk sertifikat/foto
+                     aspectRatio: null,
                      file: file,
                      targetInput: $refs.docInput,
                      onCropComplete: (croppedFile) => {
@@ -143,7 +142,7 @@
                 {{-- Live Preview Berkas Baru --}}
                 <div x-show="fileName" x-cloak class="mb-3 p-3 border border-indigo-200 rounded-xl bg-indigo-50/50">
                     <p class="text-xs text-indigo-700 font-semibold mb-2">Berkas yang Dipilih:</p>
-                    
+
                     <template x-if="isPdf">
                         <div class="flex items-center gap-2 text-sm text-slate-700">
                             <svg class="w-6 h-6 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

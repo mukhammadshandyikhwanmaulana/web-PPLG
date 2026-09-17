@@ -21,7 +21,7 @@ class RoleAndUserSeeder extends Seeder
 
             // 1. Buat Roles jika Spatie terpasang
             $adminRole = null;
-            $guruRole = null;
+            $guruRole  = null;
 
             if (class_exists(\Spatie\Permission\Models\Role::class)) {
                 $adminRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => UserRole::Admin->value, 'guard_name' => 'web']);
@@ -40,8 +40,11 @@ class RoleAndUserSeeder extends Seeder
                 ]
             );
 
-            if ($adminRole && method_exists($admin, 'syncRoles')) {
-                $admin->syncRoles([$adminRole]);
+            // Pastikan Role Spatie selalu tersinkronisasi
+            if ($adminRole && method_exists($admin, 'assignRole')) {
+                if (!$admin->hasRole(UserRole::Admin->value)) {
+                    $admin->assignRole($adminRole);
+                }
             }
 
             // 3. Buat Akun Guru Default
@@ -56,8 +59,11 @@ class RoleAndUserSeeder extends Seeder
                 ]
             );
 
-            if ($guruRole && method_exists($guruUser, 'syncRoles')) {
-                $guruUser->syncRoles([$guruRole]);
+            // Pastikan Role Spatie selalu tersinkronisasi
+            if ($guruRole && method_exists($guruUser, 'assignRole')) {
+                if (!$guruUser->hasRole(UserRole::Guru->value)) {
+                    $guruUser->assignRole($guruRole);
+                }
             }
 
             // 4. Buat Profil StaffMember terkait untuk Guru

@@ -21,112 +21,105 @@
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
-            @if($achievements->isNotEmpty())
+            @if(isset($achievements) && $achievements->isNotEmpty())
 
-                <!-- Grid Prestasi -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 items-stretch">
+                <!-- GRID PRESTASI (3 KOLOM KONSISTEN SEPERTI BERANDA) -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
 
                     @foreach($achievements as $achievement)
 
                         @php
-                            $docUrl = $achievement->document_url;
-                            $mimeType = $achievement->document?->mime_type ?? '';
+                            $imageUrl = $achievement->document_url;
+                            $formattedDate = $achievement->achievement_date 
+                                ? $achievement->achievement_date->translatedFormat('d F Y') 
+                                : ($achievement->created_at ? $achievement->created_at->translatedFormat('d F Y') : '');
 
-                            $isPdf = str_contains($mimeType, 'pdf')
-                                || str_ends_with(strtolower($docUrl ?? ''), '.pdf');
-
-                            $levelText = is_object($achievement->level)
-                                ? (method_exists($achievement->level, 'label')
-                                    ? $achievement->level->label()
-                                    : ($achievement->level->value ?? ''))
+                            $levelText = is_object($achievement->level) && property_exists($achievement->level, 'value') 
+                                ? $achievement->level->value 
                                 : (string) $achievement->level;
+
+                            $detailUrl = Route::has('public.achievements.show') && !empty($achievement->slug) 
+                                ? route('public.achievements.show', $achievement->slug) 
+                                : route('public.achievements.index');
                         @endphp
 
-                        <!-- KARTU PRESTASI (MENGHUBUNGKAN LANGSUNG KE SHOW) -->
-                        <a href="{{ route('public.achievements.show', $achievement->slug ?? $achievement->id) }}" 
-                           class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group h-full">
+                        <article class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between h-full group relative">
+                            
+                            <a href="{{ $detailUrl }}" class="flex flex-col h-full p-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-2xl" aria-label="Detail prestasi {{ $achievement->title }}">
+                                <div>
+                                    {{-- THUMBNAIL FOTO (RASIO 16:10 KONSISTEN DENGAN BERANDA) --}}
+                                    <div class="w-full aspect-[16/10] bg-slate-100 rounded-xl relative select-none mb-4">
+                                        @if($imageUrl)
+                                            <img src="{{ $imageUrl }}" 
+                                                 alt="{{ $achievement->title }}" 
+                                                 class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300 rounded-xl"
+                                                 loading="lazy"
+                                                 decoding="async"
+                                                 onerror="this.src='{{ asset('images/placeholder-pplg.webp') }}'">
+                                        @else
+                                            <div class="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100 rounded-xl">
+                                                <span class="font-sans text-xs font-medium">Tidak ada foto</span>
+                                            </div>
+                                        @endif
 
-                            <div>
-                                <!-- Thumbnail Foto (3:4 Ratio) -->
-                                <div class="w-full aspect-[3/4] bg-slate-100 border-b border-slate-100 flex items-center justify-center overflow-hidden relative select-none">
+                                        @if(!empty($levelText))
+                                            <div class="absolute top-3 left-3 bg-orange-500 text-white font-sans text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                                                {{ strtoupper($levelText) }}
+                                            </div>
+                                        @endif
+                                    </div>
 
-                                    @if($docUrl && !$isPdf)
-                                        <img src="{{ $docUrl }}"
-                                             alt="{{ $achievement->title }}"
-                                             class="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
-                                             loading="lazy"
-                                             decoding="async"
-                                             onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
-                                        <div class="hidden flex-col items-center justify-center text-slate-400 gap-1 bg-slate-100 w-full h-full p-2 text-center">
-                                            <svg class="w-7 h-7 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2v12a2 2 0 002 2z"/>
-                                            </svg>
-                                            <span class="text-[10px] font-semibold">Tanpa Foto</span>
-                                        </div>
-                                    @elseif($docUrl && $isPdf)
-                                        <div class="flex flex-col items-center justify-center text-rose-500 gap-1 bg-rose-50/60 w-full h-full p-2 text-center">
-                                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                                            </svg>
-                                            <span class="text-[10px] font-semibold">PDF Dokumentasi</span>
-                                        </div>
-                                    @else
-                                        <div class="flex flex-col items-center justify-center text-slate-400 gap-1 bg-slate-100 w-full h-full p-2 text-center">
-                                            <svg class="w-7 h-7 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2v12a2 2 0 002 2z"/>
-                                            </svg>
-                                            <span class="text-[10px] font-semibold">Tanpa Foto</span>
-                                        </div>
-                                    @endif
+                                    {{-- DESKRIPSI RINGKAS & TANGGAL --}}
+                                    <div class="space-y-2">
+                                        @if($formattedDate)
+                                            <p class="font-sans text-xs font-medium text-slate-500">
+                                                {{ $formattedDate }}
+                                            </p>
+                                        @endif
 
-                                </div>
+                                        <h3 class="font-sans font-semibold text-slate-900 text-base sm:text-lg leading-snug tracking-tight line-clamp-2 group-hover:text-orange-600 transition-colors">
+                                            {{ $achievement->title }}
+                                        </h3>
 
-                                <!-- Detail Ringkas -->
-                                <div class="p-3 space-y-1.5">
-                                    @if(!empty($levelText))
-                                        <span class="inline-block px-2 py-0.5 text-[9px] font-bold text-orange-600 bg-orange-50 border border-orange-100 rounded">
-                                            {{ ucfirst($levelText) }}
-                                        </span>
-                                    @endif
+                                        @if($achievement->contributor_name)
+                                            <p class="font-sans text-xs font-semibold text-slate-700 truncate">
+                                                {{ $achievement->contributor_name }}
+                                            </p>
+                                        @endif
 
-                                    <h3 class="font-sans font-semibold text-slate-900 text-xs leading-snug line-clamp-2 group-hover:text-orange-600 transition-colors">
-                                        {{ $achievement->title }}
-                                    </h3>
-
-                                    @if($achievement->contributor_name)
-                                        <p class="text-[11px] font-medium text-slate-600 truncate">
-                                            <span class="font-semibold text-slate-800">{{ $achievement->contributor_name }}</span>
+                                        <p class="font-sans text-slate-600 text-xs sm:text-sm leading-relaxed line-clamp-2">
+                                            {{ Str::limit(strip_tags($achievement->description ?? $achievement->content ?? ''), 90) }}
                                         </p>
-                                    @endif
+                                    </div>
                                 </div>
-                            </div>
 
-                            <!-- Footer Kartu -->
-                            <div class="px-3 pb-3 pt-1 border-t border-slate-50 mt-auto flex items-center justify-end">
-                                <span class="text-[10px] font-semibold text-orange-600 group-hover:text-orange-700 inline-flex items-center gap-0.5">
-                                    <span>Lihat Prestasi</span>
-                                    <svg class="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                                </span>
-                            </div>
+                                {{-- FOOTER KARTU --}}
+                                <div class="pt-4 border-t border-slate-100 mt-4 flex items-center justify-end text-xs font-semibold text-orange-600 group-hover:text-orange-700 transition-colors">
+                                    <span class="flex items-center gap-1">
+                                        Detail Prestasi
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </span>
+                                </div>
+                            </a>
 
-                        </a>
+                        </article>
 
                     @endforeach
 
                 </div>
 
-                <!-- Pagination -->
-                <div class="pt-4">
+                <!-- PAGINATION -->
+                <div class="pt-4 flex justify-center">
                     {{ $achievements->links() }}
                 </div>
 
             @else
 
-                <!-- Data Kosong -->
-                <div class="p-10 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-500 max-w-md mx-auto">
-                    <p class="font-sans text-sm font-semibold">
-                        Data prestasi tidak ditemukan.
-                    </p>
+                <!-- DATA KOSONG -->
+                <div class="p-6 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-500 max-w-xl mx-auto">
+                    <p class="font-sans text-sm">Belum ada data prestasi yang dipublikasikan.</p>
                 </div>
 
             @endif

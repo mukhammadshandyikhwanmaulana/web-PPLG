@@ -35,16 +35,21 @@
                         return;
                     }
 
-                    // Panggil Event Cropper Modal Global (Rasio 1:1 untuk Foto Profil Guru)
-                    $dispatch('open-cropper', {
-                        title: 'Potong Foto Profil Guru Pengganti (1:1)',
-                        aspectRatio: 1,
-                        file: file,
-                        targetInput: $refs.photoInput,
-                        targetPreview: $refs.photoPreviewImg
-                    });
-
-                    this.hasNewImage = true;
+                    // Panggil Event Cropper Modal Global (Rasio 1:1 untuk Foto Profil Guru) via CustomEvent
+                    window.dispatchEvent(new CustomEvent('open-cropper', {
+                        detail: {
+                            title: 'Potong Foto Profil Guru Pengganti (1:1)',
+                            aspectRatio: 1,
+                            file: file,
+                            targetInput: $refs.photoInput,
+                            onCropComplete: (croppedFile) => {
+                                if ($refs.photoPreviewImg) {
+                                    $refs.photoPreviewImg.src = URL.createObjectURL(croppedFile);
+                                }
+                                this.hasNewImage = true;
+                            }
+                        }
+                    }));
                 }
             },
             resetImage() {

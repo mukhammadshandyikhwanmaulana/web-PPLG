@@ -29,13 +29,13 @@
 
     @stack('styles')
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased font-sans flex flex-col min-h-screen selection:bg-orange-500 selection:text-white">
+<body class="bg-slate-50 text-slate-800 antialiased font-sans selection:bg-orange-500 selection:text-white flex flex-col min-h-screen">
 
     <!-- Header / Navigation Bar -->
     @include('components.public.navbar')
 
-    <!-- Konten Utama Halaman (Diperbaiki: w-full block agar sticky bekerja 100%) -->
-    <main class="w-full flex-1 block">
+    <!-- Konten Utama Halaman (flex-grow & flex-1 mengisi sisa ruang secara dinamis) -->
+    <main class="w-full flex-grow flex-1">
         @yield('content')
     </main>
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Enums\PublishStatus;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreActivityRequest;
 use App\Http\Requests\Admin\UpdateActivityRequest;
@@ -66,6 +67,7 @@ class ActivityController extends Controller
                 : (PublishStatus::tryFrom((string)$rawStatus) ?? PublishStatus::Draft);
 
             $activity = Activity::create([
+                'user_id'        => auth()->id(),
                 'title'          => $title,
                 'slug'           => $this->generateUniqueSlug($title),
                 'event_date'     => $data['event_date'],
@@ -161,7 +163,7 @@ class ActivityController extends Controller
 
             $activity->update($updateData);
 
-            $this->syncGalleries($activity, $galleryMediaIds, $removeIds, $filesToDelete);
+            $this->syncGalleries($activity, $galleryMediaIds, (array) $removeIds, $filesToDelete);
 
             $activity->unsetRelation('galleries');
             if (! $activity->cover_media_id && $activity->galleries()->exists()) {
@@ -182,7 +184,7 @@ class ActivityController extends Controller
         });
 
         foreach ($filesToDelete as $file) {
-            if (!empty($file['path'])) {
+            if (!empty($file['path']) && Storage::disk($file['disk'] ?? 'public')->exists($file['path'])) {
                 Storage::disk($file['disk'] ?? 'public')->delete($file['path']);
             }
         }
@@ -222,7 +224,7 @@ class ActivityController extends Controller
         });
 
         foreach ($filesToDelete as $file) {
-            if (!empty($file['path'])) {
+            if (!empty($file['path']) && Storage::disk($file['disk'] ?? 'public')->exists($file['path'])) {
                 Storage::disk($file['disk'] ?? 'public')->delete($file['path']);
             }
         }
@@ -233,9 +235,17 @@ class ActivityController extends Controller
     protected function authorizeAccess(Activity $activity): void
     {
         $user = auth()->user();
-        $isAdmin = (method_exists($user, 'hasRole') && $user->hasRole('admin')) || (strtolower($user->role ?? '') === 'admin');
+        if (! $user) abort(401);
 
-        if ($activity->created_by !== $user->id && ! $isAdmin) {
+        $hasAdminAccess = false;
+        if (method_exists($user, 'hasRole')) {
+            $hasAdminAccess = $user->hasRole(UserRole::Admin->value);
+        } else {
+            $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
+            $hasAdminAccess = $userRole === UserRole::Admin->value;
+        }
+
+        if ($activity->created_by !== $user->id && ! $hasAdminAccess) {
             abort(403, 'Anda tidak memiliki hak akses untuk mengelola laporan kegiatan ini.');
         }
     }

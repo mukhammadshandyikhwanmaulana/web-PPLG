@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Enums\PublishStatus;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreStudentWorkRequest;
 use App\Http\Requests\Admin\UpdateStudentWorkRequest;
@@ -60,16 +61,16 @@ class StudentWorkController extends Controller
                 ? $rawStatus 
                 : (PublishStatus::tryFrom((string)$rawStatus) ?? PublishStatus::Draft);
 
-            // OTOMATISISASI: Cari ID StaffMember milik Guru yang sedang login
             $staffMember = StaffMember::where('user_id', auth()->id())->first();
             $supervisorId = $data['supervisor_id'] ?? $staffMember?->id;
 
             $studentWork = StudentWork::create([
+                'user_id'          => auth()->id(),
                 'title'            => $data['title'],
                 'slug'             => $this->generateUniqueSlug($data['title']),
                 'description'      => $data['description'] ?? null,
                 'contributor_name' => $data['contributor_name'] ?? null,
-                'supervisor_id'    => $supervisorId, // Otomatis terisi ID Guru
+                'supervisor_id'    => $supervisorId,
                 'demo_url'         => $data['demo_url'] ?? null,
                 'is_featured'      => $request->boolean('is_featured'),
                 'cover_media_id'   => $mediaId,
@@ -118,7 +119,6 @@ class StudentWorkController extends Controller
                 ? $rawStatus 
                 : (PublishStatus::tryFrom((string)$rawStatus) ?? $studentWork->status);
 
-            // OTOMATISISASI: Jika supervisor_id masih kosong pada data lama, otomatis isi dengan ID Guru
             $staffMember = StaffMember::where('user_id', auth()->id())->first();
             $supervisorId = $data['supervisor_id'] ?? $studentWork->supervisor_id ?? $staffMember?->id;
 
@@ -148,10 +148,12 @@ class StudentWorkController extends Controller
             $studentWork->update($updateData);
 
             if (! empty($data['remove_gallery_ids'])) {
-                $galleriesToDelete = $studentWork->galleries()->whereIn('id', $data['remove_gallery_ids'])->get();
+                $galleriesToDelete = $studentWork->galleries()->whereIn('id', (array) $data['remove_gallery_ids'])->get();
                 foreach ($galleriesToDelete as $gallery) {
                     if ($gallery->media) {
-                        Storage::disk($gallery->media->disk ?? 'public')->delete($gallery->media->path);
+                        if ($gallery->media->path && Storage::disk($gallery->media->disk ?? 'public')->exists($gallery->media->path)) {
+                            Storage::disk($gallery->media->disk ?? 'public')->delete($gallery->media->path);
+                        }
                         $gallery->media->forceDelete();
                     }
                     $gallery->delete();
@@ -184,7 +186,9 @@ class StudentWorkController extends Controller
                 ->exists();
 
             if (! $isUsedElsewhere) {
-                Storage::disk($oldMedia->disk ?? 'public')->delete($oldMedia->path);
+                if ($oldMedia->path && Storage::disk($oldMedia->disk ?? 'public')->exists($oldMedia->path)) {
+                    Storage::disk($oldMedia->disk ?? 'public')->delete($oldMedia->path);
+                }
                 $oldMedia->forceDelete();
             }
         }
@@ -201,7 +205,9 @@ class StudentWorkController extends Controller
         DB::transaction(function () use ($studentWork) {
             foreach ($studentWork->galleries as $gallery) {
                 if ($gallery->media) {
-                    Storage::disk($gallery->media->disk ?? 'public')->delete($gallery->media->path);
+                    if ($gallery->media->path && Storage::disk($gallery->media->disk ?? 'public')->exists($gallery->media->path)) {
+                        Storage::disk($gallery->media->disk ?? 'public')->delete($gallery->media->path);
+                    }
                     $gallery->media->forceDelete();
                 }
                 $gallery->delete();
@@ -220,7 +226,9 @@ class StudentWorkController extends Controller
         if ($oldMedia) {
             $isUsedElsewhere = StudentWork::withTrashed()->where('cover_media_id', $oldMedia->id)->exists();
             if (! $isUsedElsewhere) {
-                Storage::disk($oldMedia->disk ?? 'public')->delete($oldMedia->path);
+                if ($oldMedia->path && Storage::disk($oldMedia->disk ?? 'public')->exists($oldMedia->path)) {
+                    Storage::disk($oldMedia->disk ?? 'public')->delete($oldMedia->path);
+                }
                 $oldMedia->forceDelete();
             }
         }
@@ -231,9 +239,17 @@ class StudentWorkController extends Controller
     protected function authorizeAccess(StudentWork $studentWork): void
     {
         $user = auth()->user();
-        $isAdmin = (method_exists($user, 'hasRole') && $user->hasRole('admin')) || (strtolower($user->role ?? '') === 'admin');
+        if (! $user) abort(401);
 
-        if ($studentWork->created_by !== $user->id && ! $isAdmin) {
+        $hasAdminAccess = false;
+        if (method_exists($user, 'hasRole')) {
+            $hasAdminAccess = $user->hasRole(UserRole::Admin->value);
+        } else {
+            $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
+            $hasAdminAccess = $userRole === UserRole::Admin->value;
+        }
+
+        if ($studentWork->created_by !== $user->id && ! $hasAdminAccess) {
             abort(403, 'Anda tidak memiliki hak akses untuk mengelola karya siswa ini.');
         }
     }

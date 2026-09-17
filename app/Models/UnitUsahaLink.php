@@ -10,6 +10,8 @@ class UnitUsahaLink extends Model
 {
     use HasFactory;
 
+    protected $table = 'unit_usaha_links';
+
     protected $fillable = [
         'label',
         'external_url',

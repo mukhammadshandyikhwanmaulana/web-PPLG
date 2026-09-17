@@ -37,7 +37,6 @@
     <!-- Filter & Search Section -->
     <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-300">
         <form id="search-form" method="GET" action="{{ route('admin.mitra.index') }}" class="flex flex-col md:flex-row items-stretch md:items-center gap-3">
-            {{-- Input Search --}}
             <div class="relative w-full md:flex-1">
                 <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,7 +49,6 @@
                        oninput="handleAutoSearch()"
                        class="w-full pl-10 {{ request('search') ? 'pr-10' : 'pr-3.5' }} py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition bg-white">
 
-                {{-- Hapus Pencarian Teks Inline --}}
                 @if(request('search'))
                     <a href="{{ route('admin.mitra.index', request()->except('search')) }}" 
                        title="Hapus kata kunci pencarian"
@@ -62,7 +60,6 @@
                 @endif
             </div>
 
-            {{-- Dropdown Status --}}
             <div class="w-full md:w-48">
                 <select name="status" onchange="document.getElementById('search-form').submit()" class="w-full py-2.5 px-3.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition bg-white cursor-pointer font-medium text-slate-700">
                     <option value="">Semua Status</option>
@@ -74,7 +71,6 @@
                 </select>
             </div>
 
-            {{-- Tombol Reset --}}
             @php 
                 $hasFilter = request()->anyFilled(['search', 'status']); 
             @endphp
@@ -154,7 +150,6 @@
                     </div>
                 </div>
 
-                {{-- AKSI SEJAJAR MOBILE --}}
                 <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
                     <div class="text-xs text-slate-500 font-medium">
                         Urutan: <span class="font-mono font-semibold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">{{ $item->sort_order ?? '-' }}</span>

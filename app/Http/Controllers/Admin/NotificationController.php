@@ -8,9 +8,6 @@ use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
-    /**
-     * Tandai 1 notifikasi spesifik sebagai sudah dibaca, lalu redirect ke URL tujuan jika ada.
-     */
     public function markAsRead(Request $request, string $id): RedirectResponse
     {
         $notification = auth()->user()->notifications()->findOrFail($id);
@@ -18,16 +15,20 @@ class NotificationController extends Controller
 
         $targetUrl = $notification->data['url'] ?? null;
 
-        if ($targetUrl) {
+        if ($targetUrl && filter_var($targetUrl, FILTER_VALIDATE_URL)) {
+            $host = parse_url($targetUrl, PHP_URL_HOST);
+            $appHost = parse_url(config('app.url'), PHP_URL_HOST);
+
+            if ($host === null || $host === $appHost) {
+                return redirect()->to($targetUrl);
+            }
+        } elseif ($targetUrl && str_starts_with($targetUrl, '/')) {
             return redirect()->to($targetUrl);
         }
 
         return redirect()->back()->with('success', 'Notifikasi ditandai telah dibaca.');
     }
 
-    /**
-     * Tandai SEMUA notifikasi sebagai sudah dibaca.
-     */
     public function markAllAsRead(): RedirectResponse
     {
         auth()->user()->unreadNotifications->markAsRead();

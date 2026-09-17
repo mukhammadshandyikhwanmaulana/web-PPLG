@@ -1,7 +1,7 @@
-<footer class="bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800">
+<footer class="bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800 font-sans mt-auto shrink-0">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-slate-800">
-            
+
             <!-- Identitas Sekolah -->
             <div class="space-y-4 md:col-span-1">
                 <div class="flex items-center gap-3">
@@ -29,7 +29,7 @@
                         <a href="{{ route('public.profile') }}" class="hover:text-orange-400 transition-colors duration-200">Tentang / Profil</a>
                     </li>
                     <li>
-                        <a href="{{ route('public.staff.index') }}" class="hover:text-orange-400 transition-colors duration-200">Guru & Staf Pengajar</a>
+                        <a href="{{ route('public.profile') }}#guru-staf" class="hover:text-orange-400 transition-colors duration-200">Guru &amp; Staf Pengajar</a>
                     </li>
                     <li>
                         <a href="{{ route('public.achievements.index') }}" class="hover:text-orange-400 transition-colors duration-200">Prestasi Siswa</a>
@@ -48,10 +48,11 @@
                         <a href="{{ route('public.student-works.index') }}" class="hover:text-orange-400 transition-colors duration-200">Karya Siswa</a>
                     </li>
                     <li>
-                        <a href="{{ route('public.galleries.index') }}" class="hover:text-orange-400 transition-colors duration-200">Galeri Foto</a>
+                        {{-- PERBAIKAN: Mengarahkan rute ke halaman Galeri Dokumentasi Utama (public.galleries.index) --}}
+                        <a href="{{ route('public.galleries.index') }}" class="hover:text-orange-400 transition-colors duration-200">Galeri &amp; Dokumentasi</a>
                     </li>
                     <li>
-                        <a href="{{ route('public.faq.index') }}" class="hover:text-orange-400 transition-colors duration-200">Pertanyaan Umum (FAQ)</a>
+                        <a href="{{ route('home') }}#faq" class="hover:text-orange-400 transition-colors duration-200">Pertanyaan Umum (FAQ)</a>
                     </li>
 
                     {{-- Bagian Tautan Unit Usaha --}}
@@ -100,12 +101,12 @@
                     @endif
                 </ul>
 
-                <!-- Media Sosial Links (TikTok, Instagram, YouTube) -->
+                <!-- Media Sosial Links -->
                 @if(!empty($siteSetting?->tiktok_url) || !empty($siteSetting?->instagram_url) || !empty($siteSetting?->youtube_url))
                     <div class="mt-4 pt-4 border-t border-slate-800">
                         <p class="text-xs font-semibold text-slate-400 mb-2.5">Ikuti Media Sosial</p>
                         <div class="flex items-center gap-2.5">
-                            
+
                             {{-- TikTok Icon --}}
                             @if(!empty($siteSetting->tiktok_url))
                                 <a href="{{ $siteSetting->tiktok_url }}" target="_blank" rel="noopener noreferrer" 

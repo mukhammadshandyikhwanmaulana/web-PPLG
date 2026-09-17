@@ -31,7 +31,9 @@
              }
          }
      }"
-     @keydown.escape.window="previewOpen = false">
+     @keydown.escape.window="previewOpen = false"
+     @keydown.arrow-right.window="if(previewOpen) nextPhoto()"
+     @keydown.arrow-left.window="if(previewOpen) prevPhoto()">
 
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -123,9 +125,9 @@
         @forelse ($studentWorks as $item)
             @php
                 $coverUrl = $item->cover_url;
-                $galleryPhotos = $item->galleries ? $item->galleries->reject(fn($g) => (bool)$g->is_cover)->map(function($g) {
-                    return $g->media ? $g->media->url : null;
-                })->filter()->values() : collect([]);
+                $galleryPhotos = $item->galleries 
+                    ? $item->galleries->reject(fn($g) => (bool)$g->is_cover)->map(fn($g) => $g->media?->url)->filter()->values()->all() 
+                    : [];
 
                 $isPublished = ($item->status === \App\Enums\PublishStatus::Published) || ($item->status?->value === \App\Enums\PublishStatus::Published->value);
             @endphp
@@ -182,7 +184,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                <div class="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
                     <div>
                         <span class="text-[10px] uppercase font-semibold text-slate-400 block">Kontributor</span>
                         <span class="font-medium text-slate-700 truncate block">{{ $item->contributor_name ?? '-' }}</span>
@@ -190,6 +192,10 @@
                     <div>
                         <span class="text-[10px] uppercase font-semibold text-slate-400 block">Pembimbing</span>
                         <span class="font-medium text-slate-700 truncate block">{{ $item->supervisor?->name ?? '-' }}</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] uppercase font-semibold text-slate-400 block">Pembuat</span>
+                        <span class="font-medium text-slate-700 truncate block">{{ $item->creator?->name ?? 'Admin' }}</span>
                     </div>
                 </div>
 
@@ -245,6 +251,7 @@
                     <th class="py-3.5 px-4">Judul Karya & Deskripsi</th>
                     <th class="py-3.5 px-4">Kontributor</th>
                     <th class="py-3.5 px-4">Pembimbing</th>
+                    <th class="py-3.5 px-4">Pembuat</th>
                     <th class="py-3.5 px-4 w-36 text-center">Galeri</th>
                     <th class="py-3.5 px-4 w-28 text-center">Status</th>
                     <th class="py-3.5 px-4 w-36 text-right">Aksi</th>
@@ -254,9 +261,9 @@
                 @forelse ($studentWorks as $item)
                     @php
                         $coverUrl = $item->cover_url;
-                        $galleryPhotos = $item->galleries ? $item->galleries->reject(fn($g) => (bool)$g->is_cover)->map(function($g) {
-                            return $g->media ? $g->media->url : null;
-                        })->filter()->values() : collect([]);
+                        $galleryPhotos = $item->galleries 
+                            ? $item->galleries->reject(fn($g) => (bool)$g->is_cover)->map(fn($g) => $g->media?->url)->filter()->values()->all() 
+                            : [];
 
                         $isPublished = ($item->status === \App\Enums\PublishStatus::Published) || ($item->status?->value === \App\Enums\PublishStatus::Published->value);
                     @endphp
@@ -311,6 +318,9 @@
                         <td class="py-3 px-4 text-slate-600">
                             {{ $item->supervisor?->name ?? '-' }}
                         </td>
+                        <td class="py-3 px-4 text-slate-600 whitespace-nowrap">
+                            {{ $item->creator?->name ?? '—' }}
+                        </td>
                         <td class="py-3 px-4 text-center whitespace-nowrap">
                             @if(count($galleryPhotos) > 0)
                                 <button type="button" 
@@ -355,7 +365,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="py-12 px-4 text-center text-slate-500">
+                        <td colspan="9" class="py-12 px-4 text-center text-slate-500">
                             <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                             </svg>

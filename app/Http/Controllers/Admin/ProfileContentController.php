@@ -12,7 +12,7 @@ class ProfileContentController extends Controller
 {
     public function edit(): View
     {
-        $profile = ProfileContent::firstOrCreate([], []);
+        $profile = ProfileContent::first() ?? ProfileContent::create([]);
 
         return view('admin.profil.edit', [
             'profile' => $profile,
@@ -21,7 +21,7 @@ class ProfileContentController extends Controller
 
     public function update(UpdateProfileContentRequest $request): RedirectResponse
     {
-        $profile = ProfileContent::firstOrCreate([], []);
+        $profile = ProfileContent::first() ?? ProfileContent::create([]);
 
         $data = $request->validated();
         $data['updated_by'] = auth()->id();

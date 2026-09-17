@@ -5,7 +5,7 @@ namespace App\Enums;
 enum UserRole: string
 {
     case Admin = 'admin';
-    case Guru = 'guru';
+    case Guru  = 'guru';
 
     /**
      * Mengembalikan teks label peran pengguna.

@@ -12,14 +12,14 @@ class UnitUsahaController extends Controller
 {
     public function edit(): View
     {
-        $link = UnitUsahaLink::firstOrCreate([], ['is_active' => false]);
+        $link = UnitUsahaLink::first() ?? UnitUsahaLink::create(['is_active' => false]);
 
         return view('admin.unit-usaha.edit', compact('link'));
     }
 
     public function update(UpdateUnitUsahaRequest $request): RedirectResponse
     {
-        $link = UnitUsahaLink::firstOrCreate([], ['is_active' => false]);
+        $link = UnitUsahaLink::first() ?? UnitUsahaLink::create(['is_active' => false]);
 
         $link->update(array_merge(
             $request->validated(),

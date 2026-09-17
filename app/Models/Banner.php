@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,6 +12,8 @@ class Banner extends Model
 {
     use HasFactory;
 
+    protected $table = 'banners';
+
     protected $fillable = [
         'title',
         'subtitle',
@@ -19,6 +22,10 @@ class Banner extends Model
         'button_url',
         'order',
         'is_active',
+    ];
+
+    protected $appends = [
+        'image_url',
     ];
 
     protected function casts(): array
@@ -34,17 +41,26 @@ class Banner extends Model
         return $this->hasMany(BannerPhoto::class)->orderBy('sort_order', 'asc');
     }
 
-    public function getImageUrlAttribute(): string
+    /**
+     * Accessor URL Banner yang Aman dari N+1 Query.
+     */
+    protected function imageUrl(): Attribute
     {
-        $firstPhoto = $this->relationLoaded('photos') ? $this->photos->first() : $this->photos()->first();
-        if ($firstPhoto) {
-            return $firstPhoto->url;
-        }
+        return Attribute::make(
+            get: function () {
+                if ($this->relationLoaded('photos') && $this->photos->isNotEmpty()) {
+                    $firstPhoto = $this->photos->first();
+                    if ($firstPhoto && ! empty($firstPhoto->file_path)) {
+                        return Storage::disk('public')->url($firstPhoto->file_path);
+                    }
+                }
 
-        if (! empty($this->image_path)) {
-            return Storage::disk('public')->url($this->image_path);
-        }
+                if (! empty($this->image_path)) {
+                    return Storage::disk('public')->url($this->image_path);
+                }
 
-        return 'https://placehold.co/1280x720/4f46e5/white?text=Banner+PPLG';
+                return asset('images/hero-bg.jpg');
+            }
+        );
     }
 }

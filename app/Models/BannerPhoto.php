@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,17 @@ class BannerPhoto extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['banner_id', 'file_path', 'sort_order'];
+    protected $table = 'banner_photos';
+
+    protected $fillable = [
+        'banner_id', 
+        'file_path', 
+        'sort_order',
+    ];
+
+    protected $appends = [
+        'url',
+    ];
 
     protected function casts(): array
     {
@@ -26,10 +37,17 @@ class BannerPhoto extends Model
         return $this->belongsTo(Banner::class, 'banner_id');
     }
 
-    public function getUrlAttribute(): string
+    /**
+     * Accessor URL Foto Banner.
+     */
+    protected function url(): Attribute
     {
-        return ! empty($this->file_path)
-            ? Storage::disk('public')->url($this->file_path)
-            : 'https://placehold.co/1280x720/4f46e5/white?text=No+Image';
+        return Attribute::make(
+            get: function () {
+                return ! empty($this->file_path)
+                    ? Storage::disk('public')->url($this->file_path)
+                    : asset('images/placeholder-pplg.webp');
+            }
+        );
     }
 }

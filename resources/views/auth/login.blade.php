@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Masuk Ke Akun Anda — {{ config('app.name', 'PPLG Portal') }}</title>
+    <title>Masuk ke Akun Anda — {{ config('app.name', 'PPLG Portal') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         [x-cloak] { display: none !important; }
@@ -109,8 +109,8 @@
                     </div>
                 @endif
 
-                <!-- Form Autentikasi -->
-                <form action="{{ route('login.store') }}" method="POST" class="space-y-3.5">
+                <!-- Form Autentikasi dengan Autocomplete OFF -->
+                <form action="{{ route('login.store') }}" method="POST" autocomplete="off" class="space-y-3.5">
                     @csrf
 
                     <!-- Hidden Input Role -->
@@ -121,12 +121,12 @@
                         <label for="email" class="block text-xs font-semibold text-slate-700 mb-1">
                             Alamat Email
                         </label>
-                        <input type="email" id="email" name="email" value="{{ old('email') }}" required autofocus
+                        <input type="email" id="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="off"
                                placeholder="nama@smkn1bangsri.sch.id"
                                class="w-full px-3.5 py-2.5 text-xs bg-white text-slate-800 font-medium rounded-xl border border-stone-300 focus:border-stone-400 focus:outline-none focus:ring-0 transition shadow-xs">
                     </div>
 
-                    <!-- Password Input dengan Toggle Password -->
+                    <!-- Password Input dengan Autocomplete new-password untuk Cegah Auto-Fill Browser -->
                     <div>
                         <label for="password" class="block text-xs font-semibold text-slate-700 mb-1">
                             Kata Sandi
@@ -136,6 +136,7 @@
                                    id="password" 
                                    name="password" 
                                    required
+                                   autocomplete="new-password"
                                    placeholder="••••••••"
                                    class="w-full pl-3.5 pr-10 py-2.5 text-xs bg-white text-slate-800 font-medium rounded-xl border border-stone-300 focus:border-stone-400 focus:outline-none focus:ring-0 transition shadow-xs">
                             
@@ -189,6 +190,19 @@
         </div>
 
     </div>
+
+    <!-- Skrip Paksa Kosongkan Input Kata Sandi Saat Halaman Dimuat -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const passwordInput = document.getElementById('password');
+            if (passwordInput) {
+                passwordInput.value = '';
+                setTimeout(() => {
+                    passwordInput.value = '';
+                }, 100);
+            }
+        });
+    </script>
 
 </body>
 </html>

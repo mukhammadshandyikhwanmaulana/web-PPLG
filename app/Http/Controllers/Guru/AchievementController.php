@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Guru;
 
 use App\Enums\AchievementLevel;
 use App\Enums\PublishStatus;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreAchievementRequest;
 use App\Http\Requests\Admin\UpdateAchievementRequest;
@@ -68,17 +69,18 @@ class AchievementController extends Controller
                 : ($rawLevel ? AchievementLevel::tryFrom((string)$rawLevel) : null);
 
             $achievement = Achievement::create([
-                'title'            => $data['title'],
-                'slug'             => $this->generateUniqueSlug($data['title']),
-                'achievement_date' => $data['achievement_date'] ?? null,
-                'level'            => $level,
-                'contributor_name' => $data['contributor_name'] ?? null,
-                'description'      => $data['description'] ?? null,
+                'user_id'           => auth()->id(),
+                'title'             => $data['title'],
+                'slug'              => $this->generateUniqueSlug($data['title']),
+                'achievement_date'  => $data['achievement_date'] ?? null,
+                'level'             => $level,
+                'contributor_name'  => $data['contributor_name'] ?? null,
+                'description'       => $data['description'] ?? null,
                 'document_media_id' => $mediaId,
-                'status'           => $status,
-                'published_at'     => $status === PublishStatus::Published ? now() : null,
-                'created_by'       => auth()->id(),
-                'updated_by'       => auth()->id(),
+                'status'            => $status,
+                'published_at'      => $status === PublishStatus::Published ? now() : null,
+                'created_by'        => auth()->id(),
+                'updated_by'        => auth()->id(),
             ]);
 
             if (class_exists(ActivityLogger::class)) {
@@ -169,7 +171,9 @@ class AchievementController extends Controller
                 ->exists();
 
             if (! $isUsedElsewhere) {
-                Storage::disk($oldMedia->disk ?? 'public')->delete($oldMedia->path);
+                if ($oldMedia->path && Storage::disk($oldMedia->disk ?? 'public')->exists($oldMedia->path)) {
+                    Storage::disk($oldMedia->disk ?? 'public')->delete($oldMedia->path);
+                }
                 $oldMedia->forceDelete();
             }
         }
@@ -197,7 +201,9 @@ class AchievementController extends Controller
         if ($oldMedia) {
             $isUsedElsewhere = Achievement::withTrashed()->where('document_media_id', $oldMedia->id)->exists();
             if (! $isUsedElsewhere) {
-                Storage::disk($oldMedia->disk ?? 'public')->delete($oldMedia->path);
+                if ($oldMedia->path && Storage::disk($oldMedia->disk ?? 'public')->exists($oldMedia->path)) {
+                    Storage::disk($oldMedia->disk ?? 'public')->delete($oldMedia->path);
+                }
                 $oldMedia->forceDelete();
             }
         }
@@ -208,9 +214,17 @@ class AchievementController extends Controller
     protected function authorizeAccess(Achievement $achievement): void
     {
         $user = auth()->user();
-        $isAdmin = (method_exists($user, 'hasRole') && $user->hasRole('admin')) || (strtolower($user->role ?? '') === 'admin');
+        if (! $user) abort(401);
 
-        if ($achievement->created_by !== $user->id && ! $isAdmin) {
+        $hasAdminAccess = false;
+        if (method_exists($user, 'hasRole')) {
+            $hasAdminAccess = $user->hasRole(UserRole::Admin->value);
+        } else {
+            $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
+            $hasAdminAccess = $userRole === UserRole::Admin->value;
+        }
+
+        if ($achievement->created_by !== $user->id && ! $hasAdminAccess) {
             abort(403, 'Anda tidak memiliki hak akses untuk mengelola data prestasi ini.');
         }
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Services\ActivityLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -77,21 +78,37 @@ class AccountController extends Controller
 
             $user->save();
 
-            ActivityLog::create([
-                'user_id' => $user->id,
-                'action' => 'update',
-                'description' => 'Memperbarui profil akun' . ($passwordChanged ? ' dan password' : ''),
-                'subject_type' => get_class($user),
-                'subject_id' => $user->id,
-                'properties' => [
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'has_avatar' => !empty($user->avatar),
-                    'password_changed' => $passwordChanged,
-                ],
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
+            $description = 'Memperbarui profil akun' . ($passwordChanged ? ' dan password' : '');
+
+            if (class_exists(ActivityLogger::class)) {
+                app(ActivityLogger::class)->log(
+                    action: 'update_account',
+                    description: $description,
+                    subject: $user,
+                    properties: [
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'has_avatar' => !empty($user->avatar),
+                        'password_changed' => $passwordChanged,
+                    ]
+                );
+            } else {
+                ActivityLog::create([
+                    'user_id' => $user->id,
+                    'action' => 'update',
+                    'description' => $description,
+                    'subject_type' => get_class($user),
+                    'subject_id' => $user->id,
+                    'properties' => [
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'has_avatar' => !empty($user->avatar),
+                        'password_changed' => $passwordChanged,
+                    ],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+            }
         });
 
         return redirect()

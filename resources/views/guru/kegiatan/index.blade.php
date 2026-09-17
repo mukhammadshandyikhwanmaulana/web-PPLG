@@ -136,7 +136,7 @@
                 <div class="flex items-start gap-3">
                     @if ($coverUrl)
                         <div class="relative group cursor-pointer shrink-0 rounded-xl overflow-hidden border border-slate-200" 
-                             @click="openPreview('{{ $coverUrl }}', 'Preview Foto Cover Kegiatan')">
+                             @click="openPreview(@js($coverUrl), 'Preview Foto Cover Kegiatan')">
                             <img src="{{ $coverUrl }}" alt="{{ $item->title }}" class="w-16 h-16 object-cover transition-transform duration-300 group-hover:scale-110"
                                  onerror="this.onerror=null; this.src='https://placehold.co/600x400/e2e8f0/64748b?text=Error';">
                             <div class="absolute inset-0 bg-slate-950/40 flex flex-col items-center justify-center text-white text-[9px] font-bold gap-0.5 transition opacity-80 group-hover:opacity-100">
@@ -181,7 +181,7 @@
                     <div>
                         @if(count($galleryPhotos) > 0)
                             <button type="button" 
-                                    @click='openPreview(@json($galleryPhotos), "Preview Galeri Dokumentasi Kegiatan")'
+                                    @click="openPreview(@js($galleryPhotos), 'Preview Galeri Dokumentasi Kegiatan')"
                                     class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition border border-slate-200">
                                 <svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -270,7 +270,7 @@
                         <td class="py-3 px-4">
                             @if ($coverUrl)
                                 <div class="relative group cursor-pointer w-14 h-10 rounded-xl overflow-hidden border border-slate-200 shadow-xs" 
-                                     @click="openPreview('{{ $coverUrl }}', 'Preview Foto Cover Kegiatan')">
+                                     @click="openPreview(@js($coverUrl), 'Preview Foto Cover Kegiatan')">
                                     <img src="{{ $coverUrl }}" alt="{{ $item->title }}" class="w-14 h-10 object-cover transition-transform duration-300 group-hover:scale-110"
                                          onerror="this.onerror=null; this.src='https://placehold.co/600x400/e2e8f0/64748b?text=Error';">
                                     <div class="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
@@ -301,7 +301,7 @@
                         <td class="py-3 px-4 text-center whitespace-nowrap">
                             @if(count($galleryPhotos) > 0)
                                 <button type="button" 
-                                        @click='openPreview(@json($galleryPhotos), "Preview Galeri Dokumentasi Kegiatan")'
+                                        @click="openPreview(@js($galleryPhotos), 'Preview Galeri Dokumentasi Kegiatan')"
                                         class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 border border-slate-200 text-slate-700 transition cursor-pointer group">
                                     <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -352,16 +352,10 @@
                 @endforelse
             </tbody>
         </table>
-
-        @if (method_exists($activities, 'hasPages') && $activities->hasPages())
-            <div class="px-4 py-3 bg-slate-50 border-t border-slate-200">
-                {{ $activities->links() }}
-            </div>
-        @endif
     </div>
 
     @if (method_exists($activities, 'hasPages') && $activities->hasPages())
-        <div class="block md:hidden mt-3">
+        <div class="px-4 py-3 bg-white border border-slate-300 rounded-2xl shadow-xs">
             {{ $activities->links() }}
         </div>
     @endif

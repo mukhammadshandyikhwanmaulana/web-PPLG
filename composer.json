@@ -2,8 +2,8 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "smkn1bangsri/pplg-web",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Website Resmi PPLG SMKN 1 Bangsri",
+    "keywords": ["laravel", "framework", "pplg"],
     "license": "MIT",
     "require": {
         "php": "^8.3",
@@ -54,6 +54,9 @@
             "@php artisan package:discover --ansi"
         ],
         "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-install-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
         ],
         "post-root-package-install": [

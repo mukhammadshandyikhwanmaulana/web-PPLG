@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PublishStatus;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Storage;
 class IndustryPartner extends Model
 {
     use HasFactory, SoftDeletes;
+
+    protected $table = 'industry_partners';
 
     protected $fillable = [
         'name',
@@ -25,11 +28,15 @@ class IndustryPartner extends Model
         'updated_by',
     ];
 
+    protected $appends = [
+        'logo_url',
+    ];
+
     protected function casts(): array
     {
         return [
             'published_at'  => 'datetime',
-            'status'        => class_exists(PublishStatus::class) ? PublishStatus::class : 'string',
+            'status'        => PublishStatus::class,
             'sort_order'    => 'integer',
             'logo_media_id' => 'integer',
             'created_by'    => 'integer',
@@ -52,24 +59,29 @@ class IndustryPartner extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    public function getLogoUrlAttribute(): ?string
+    /**
+     * Accessor Logo URL yang Aman dari N+1 Query.
+     */
+    protected function logoUrl(): Attribute
     {
-        $logoMedia = $this->relationLoaded('logo') ? $this->logo : $this->logo()->first();
-        if ($logoMedia && ! empty($logoMedia->path)) {
-            return Storage::disk($logoMedia->disk ?? 'public')->url($logoMedia->path);
-        }
+        return Attribute::make(
+            get: function () {
+                if ($this->relationLoaded('logo') && $this->logo && ! empty($this->logo->path)) {
+                    return Storage::disk($this->logo->disk ?? 'public')->url($this->logo->path);
+                }
 
-        return null;
+                return null;
+            }
+        );
     }
 
     public function scopePublished(Builder $query): Builder
     {
-        $publishedValue = class_exists(PublishStatus::class) ? PublishStatus::Published : 'published';
-        return $query->where('status', $publishedValue);
+        return $query->where('status', PublishStatus::Published);
     }
 
     public function scopeOrdered(Builder $query): Builder
     {
-        return $query->orderBy('sort_order')->orderBy('name');
+        return $query->orderBy('sort_order', 'asc')->orderBy('name', 'asc');
     }
 }

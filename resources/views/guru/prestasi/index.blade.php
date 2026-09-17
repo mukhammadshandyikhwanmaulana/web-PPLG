@@ -116,7 +116,9 @@
                 $docExt = $docPath ? pathinfo($docPath, PATHINFO_EXTENSION) : '';
                 $docMime = $mediaDoc?->mime_type ?? '';
                 $docAlt = $mediaDoc?->alt_text ?? $achievement->title;
-                $isPublished = ($achievement->status === \App\Enums\PublishStatus::Published) || ($achievement->status?->value === \App\Enums\PublishStatus::Published->value);
+                
+                $statusVal = is_object($achievement->status) ? $achievement->status->value : $achievement->status;
+                $isPublished = $statusVal === \App\Enums\PublishStatus::Published->value || $statusVal === 'published';
             @endphp
             <div class="bg-white rounded-2xl border border-slate-300 p-4 shadow-xs flex flex-col gap-3">
                 <div class="flex items-start justify-between gap-2">
@@ -215,7 +217,9 @@
                         $docExt = $docPath ? pathinfo($docPath, PATHINFO_EXTENSION) : '';
                         $docMime = $mediaDoc?->mime_type ?? '';
                         $docAlt = $mediaDoc?->alt_text ?? $achievement->title;
-                        $isPublished = ($achievement->status === \App\Enums\PublishStatus::Published) || ($achievement->status?->value === \App\Enums\PublishStatus::Published->value);
+                        
+                        $statusVal = is_object($achievement->status) ? $achievement->status->value : $achievement->status;
+                        $isPublished = $statusVal === \App\Enums\PublishStatus::Published->value || $statusVal === 'published';
                     @endphp
                     <tr class="hover:bg-slate-50/50 transition">
                         <td class="py-3 px-4 font-medium text-slate-900 max-w-xs">
@@ -301,10 +305,10 @@
          x-transition:leave-end="opacity-0"
          class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-xs"
          x-cloak>
-        
+
         <div class="relative max-w-lg w-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col max-h-[90vh]"
              @click.away="previewModal = false">
-            
+
             <!-- Modal Header -->
             <div class="flex items-center justify-between p-4 border-b border-slate-800 text-white shrink-0">
                 <div class="flex items-center gap-2.5 min-w-0 pr-2">
@@ -327,7 +331,7 @@
 
             <!-- Modal Body Container -->
             <div class="p-5 flex-1 flex flex-col items-center justify-center min-h-[260px] bg-slate-950/60 overflow-y-auto">
-                
+
                 <!-- JIKA BERKAS ADALAH PDF -->
                 <template x-if="previewType === 'pdf'">
                     <div class="w-full flex flex-col items-center justify-center text-center p-6 bg-slate-900/90 rounded-2xl border border-slate-800/80 space-y-4">
@@ -393,7 +397,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('search-input');
-        
+
         if (searchInput && sessionStorage.getItem('guru_prestasi_search_focus') === 'true') {
             searchInput.focus();
             const textLen = searchInput.value.length;

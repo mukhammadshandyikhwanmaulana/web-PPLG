@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\UserRole;
 use App\Models\StaffMember;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
@@ -13,8 +14,14 @@ class StoreGuruRequest extends FormRequest
         if (! auth()->check()) return false;
         $user = auth()->user();
 
-        return (method_exists($user, 'hasRole') && $user->hasRole('admin')) 
-            || in_array(strtolower($user->role ?? ''), ['admin', 'superadmin']);
+        $adminRole = UserRole::Admin->value;
+
+        if (method_exists($user, 'hasRole')) {
+            return $user->hasRole($adminRole);
+        }
+
+        $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
+        return $userRole === $adminRole;
     }
 
     protected function prepareForValidation(): void
@@ -42,13 +49,23 @@ class StoreGuruRequest extends FormRequest
                 'nullable',
                 'array',
                 function ($attribute, $value, $fail) {
-                    if (is_array($value) && (in_array('Ketua Kompetensi Keahlian PPLG', $value, true) || in_array('Kepala Jurusan PPLG', $value, true))) {
-                        $exists = StaffMember::where(function ($query) {
-                            $query->where('position', 'like', '%Ketua Kompetensi Keahlian%')
-                                  ->orWhere('position', 'like', '%Kepala Jurusan%');
-                        })->exists();
-                        if ($exists) {
-                            $fail('Jabatan Ketua Kompetensi Keahlian sudah terisi oleh guru lain.');
+                    if (is_array($value)) {
+                        $hasKajurPosition = collect($value)->contains(function ($item) {
+                            return is_string($item) && (
+                                str_contains($item, 'Ketua Kompetensi Keahlian') || 
+                                str_contains($item, 'Kepala Jurusan')
+                            );
+                        });
+
+                        if ($hasKajurPosition) {
+                            $exists = StaffMember::where(function ($query) {
+                                $query->where('position', 'like', '%Ketua Kompetensi Keahlian%')
+                                      ->orWhere('position', 'like', '%Kepala Jurusan%');
+                            })->exists();
+
+                            if ($exists) {
+                                $fail('Jabatan Ketua Kompetensi Keahlian/Kepala Jurusan sudah terisi oleh guru lain.');
+                            }
                         }
                     }
                 },

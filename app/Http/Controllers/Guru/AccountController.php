@@ -16,9 +16,6 @@ use Illuminate\View\View;
 
 class AccountController extends Controller
 {
-    /**
-     * Tampilkan form edit profil khusus Guru.
-     */
     public function edit(): View
     {
         $user = auth()->user();
@@ -31,9 +28,6 @@ class AccountController extends Controller
         return view('guru.account.edit', compact('user', 'staff'));
     }
 
-    /**
-     * Simpan perubahan profil, avatar, dan biodata staf.
-     */
     public function update(Request $request): RedirectResponse
     {
         $user = auth()->user();
@@ -73,8 +67,6 @@ class AccountController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $validated, $user, $staff) {
-
-            // 1. Update Tabel Users (Identitas Login Guru)
             $user->name = trim($validated['name']);
             $user->email = trim(strtolower($validated['email']));
 
@@ -82,7 +74,6 @@ class AccountController extends Controller
                 $user->password = Hash::make($validated['password']);
             }
 
-            // Fitur Hapus Foto Wajah
             if ($request->boolean('remove_avatar')) {
                 if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
                     Storage::disk('public')->delete($user->avatar);
@@ -101,7 +92,6 @@ class AccountController extends Controller
                 }
             }
 
-            // Fitur Upload Foto Wajah Guru Baru
             if ($request->hasFile('avatar')) {
                 if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
                     Storage::disk('public')->delete($user->avatar);
@@ -126,7 +116,6 @@ class AccountController extends Controller
 
             $user->save();
 
-            // 2. Update Tabel StaffMembers (Biodata Publik Guru)
             $staff->name = trim($validated['name']);
             if (isset($validated['position'])) {
                 $staff->position = trim($validated['position']);

@@ -29,8 +29,10 @@
                      aspectRatio: NaN, // Rasio bebas (fleksibel untuk logo persegi/persegi panjang)
                      file: file,
                      targetInput: $refs.logoInput,
-                     targetPreview: $refs.logoPreviewImg,
-                     onCropComplete: () => {
+                     onCropComplete: (croppedFile) => {
+                         if ($refs.logoPreviewImg) {
+                             $refs.logoPreviewImg.src = URL.createObjectURL(croppedFile);
+                         }
                          if ($refs.logoPreviewContainer) {
                              $refs.logoPreviewContainer.classList.remove('hidden');
                          }
@@ -48,7 +50,7 @@
          }
      }">
 
-    {{-- Nama Mitra --}}
+    <!-- Nama Mitra -->
     <div>
         <label for="name" class="block text-sm font-semibold text-slate-900 mb-1.5">
             Nama Mitra <span class="text-rose-500 ml-1">*</span>
@@ -61,7 +63,7 @@
         @enderror
     </div>
 
-    {{-- Website URL --}}
+    <!-- Website URL -->
     <div>
         <label for="website_url" class="block text-sm font-semibold text-slate-900 mb-1.5">Website URL</label>
         <input type="url" name="website_url" id="website_url" value="{{ old('website_url', $p?->website_url) }}"
@@ -72,7 +74,7 @@
         @enderror
     </div>
 
-    {{-- Logo Mitra --}}
+    <!-- Logo Mitra -->
     <div>
         <label for="logo" class="block text-sm font-semibold text-slate-900 mb-1">Logo Mitra</label>
         <p class="text-xs text-slate-400 mb-2.5">Opsional (Maksimal 2MB, format JPEG, PNG, WEBP, SVG)</p>
@@ -101,7 +103,7 @@
         @enderror
     </div>
 
-    {{-- Urutan Tampil --}}
+    <!-- Urutan Tampil -->
     <div>
         <label for="sort_order" class="block text-sm font-semibold text-slate-900 mb-1">Urutan Tampil</label>
         <p class="text-xs text-slate-400 mb-1.5">Angka urutan posisi tampilan (misal: 1, 2, 3)</p>
@@ -112,7 +114,7 @@
         @enderror
     </div>
 
-    {{-- Status Publikasi --}}
+    <!-- Status Publikasi -->
     <div>
         <label for="status" class="block text-sm font-semibold text-slate-900 mb-1.5">
             Status Publikasi <span class="text-rose-500 ml-1">*</span>

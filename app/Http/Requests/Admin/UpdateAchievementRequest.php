@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Enums\AchievementLevel;
 use App\Enums\PublishStatus;
+use App\Enums\UserRole;
 use App\Models\Achievement;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -15,10 +16,18 @@ class UpdateAchievementRequest extends FormRequest
         if (! auth()->check()) return false;
         $user = auth()->user();
 
-        $isAdmin = (method_exists($user, 'hasRole') && $user->hasRole('admin')) || in_array(strtolower($user->role ?? ''), ['admin', 'superadmin']);
-        if ($isAdmin) return true;
+        $adminRole = UserRole::Admin->value;
 
-        $isGuru = (method_exists($user, 'hasRole') && $user->hasRole('guru')) || (strtolower($user->role ?? '') === 'guru');
+        if (method_exists($user, 'hasRole') && $user->hasRole($adminRole)) {
+            return true;
+        }
+
+        $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
+        if ($userRole === $adminRole) {
+            return true;
+        }
+
+        $isGuru = (method_exists($user, 'hasRole') && $user->hasRole(UserRole::Guru->value)) || ($userRole === UserRole::Guru->value);
         if ($isGuru) {
             $param = $this->route('achievement') ?? $this->route('prestasi') ?? collect($this->route()->parameters())->first();
             $achievement = $param instanceof Achievement ? $param : Achievement::find($param);
@@ -46,10 +55,10 @@ class UpdateAchievementRequest extends FormRequest
         return [
             'title'            => ['required', 'string', 'max:255'],
             'achievement_date' => ['nullable', 'date'],
-            'level'            => ['nullable', class_exists(AchievementLevel::class) ? Rule::enum(AchievementLevel::class) : 'string'],
+            'level'            => ['nullable', Rule::enum(AchievementLevel::class)],
             'contributor_name' => ['nullable', 'string', 'max:255'],
             'description'      => ['nullable', 'string'],
-            'status'           => ['required', class_exists(PublishStatus::class) ? Rule::enum(PublishStatus::class) : 'string'],
+            'status'           => ['required', Rule::enum(PublishStatus::class)],
             'document'         => ['nullable', 'file', 'mimes:pdf,png,jpg,jpeg,webp', 'max:10240'],
         ];
     }

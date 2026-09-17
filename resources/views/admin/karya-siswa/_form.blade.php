@@ -24,17 +24,25 @@
 
             if (file.type.startsWith('image/')) {
                 // Panggil Modal Cropper Global khusus Cover (Rasio 16:9)
-                $dispatch('open-cropper', {
-                    title: 'Potong Sampul Utama Karya Siswa (16:9)',
-                    aspectRatio: 16 / 9,
-                    file: file,
-                    targetInput: $refs.coverInput,
-                    targetPreview: $refs.coverPreviewImg,
-                    onCropComplete: () => {
-                        $refs.coverPreviewBox.classList.remove('hidden');
-                        if ($refs.coverPreviewEmpty) $refs.coverPreviewEmpty.classList.add('hidden');
+                window.dispatchEvent(new CustomEvent('open-cropper', {
+                    detail: {
+                        title: 'Potong Sampul Utama Karya Siswa (16:9)',
+                        aspectRatio: 16 / 9,
+                        file: file,
+                        targetInput: $refs.coverInput,
+                        onCropComplete: (croppedFile) => {
+                            if ($refs.coverPreviewImg) {
+                                $refs.coverPreviewImg.src = URL.createObjectURL(croppedFile);
+                            }
+                            if ($refs.coverPreviewBox) {
+                                $refs.coverPreviewBox.classList.remove('hidden');
+                            }
+                            if ($refs.coverPreviewEmpty) {
+                                $refs.coverPreviewEmpty.classList.add('hidden');
+                            }
+                        }
                     }
-                });
+                }));
             }
         },
         resetCover() {
@@ -106,7 +114,7 @@
         </label>
         <textarea id="description" name="description" rows="4"
                   placeholder="Jelaskan detail mengenai karya ini..."
-                  class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition resize-none @error('description') border-rose-300 bg-rose-50/30 @enderror">{{ old('description', $sw?->description) }}</textarea>
+                  class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition resize-y @error('description') border-rose-300 bg-rose-50/30 @enderror">{{ old('description', $sw?->description) }}</textarea>
         @error('description')
             <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
         @enderror

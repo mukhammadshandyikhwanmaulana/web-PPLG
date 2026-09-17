@@ -10,9 +10,12 @@ class PrincipalWelcome extends Model
 {
     use HasFactory;
 
+    protected $table = 'principal_welcomes';
+
     protected $fillable = [
         'staff_member_id',
         'content',
+        'is_active',
         'updated_by',
     ];
 
@@ -20,6 +23,7 @@ class PrincipalWelcome extends Model
     {
         return [
             'staff_member_id' => 'integer',
+            'is_active'       => 'boolean',
             'updated_by'      => 'integer',
         ];
     }

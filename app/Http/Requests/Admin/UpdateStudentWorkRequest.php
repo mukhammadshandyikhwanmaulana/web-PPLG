@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\PublishStatus;
+use App\Enums\UserRole;
 use App\Models\StudentWork;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -14,10 +15,18 @@ class UpdateStudentWorkRequest extends FormRequest
         if (! auth()->check()) return false;
         $user = auth()->user();
 
-        $isAdmin = (method_exists($user, 'hasRole') && $user->hasRole('admin')) || in_array(strtolower($user->role ?? ''), ['admin', 'superadmin']);
-        if ($isAdmin) return true;
+        $adminRole = UserRole::Admin->value;
 
-        $isGuru = (method_exists($user, 'hasRole') && $user->hasRole('guru')) || (strtolower($user->role ?? '') === 'guru');
+        if (method_exists($user, 'hasRole') && $user->hasRole($adminRole)) {
+            return true;
+        }
+
+        $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
+        if ($userRole === $adminRole) {
+            return true;
+        }
+
+        $isGuru = (method_exists($user, 'hasRole') && $user->hasRole(UserRole::Guru->value)) || ($userRole === UserRole::Guru->value);
         if ($isGuru) {
             $param = $this->route('karya_siswa') ?? $this->route('student_work') ?? collect($this->route()->parameters())->first();
             $studentWork = $param instanceof StudentWork ? $param : StudentWork::find($param);
@@ -50,7 +59,7 @@ class UpdateStudentWorkRequest extends FormRequest
             'supervisor_id'        => ['nullable', 'exists:staff_members,id'],
             'demo_url'             => ['nullable', 'url', 'max:255'],
             'is_featured'          => ['nullable', 'boolean'],
-            'status'               => ['required', class_exists(PublishStatus::class) ? Rule::enum(PublishStatus::class) : 'string'],
+            'status'               => ['required', Rule::enum(PublishStatus::class)],
             'cover'                => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
             'images'               => [
                 'nullable', 
@@ -60,11 +69,11 @@ class UpdateStudentWorkRequest extends FormRequest
                     $studentWork = $param instanceof StudentWork ? $param : StudentWork::find($param);
 
                     if ($studentWork) {
-                        $removeIds = $this->input('remove_gallery_ids', []);
+                        $removeIds = (array) $this->input('remove_gallery_ids', []);
                         
                         $existingCount = $studentWork->galleries()
                             ->where('is_cover', false)
-                            ->whereNotIn('id', (array) $removeIds)
+                            ->whereNotIn('id', $removeIds)
                             ->count();
 
                         $newCount = is_array($value) ? count(array_filter($value)) : 0;

@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Achievement;
 use App\Models\Activity;
 use App\Models\Facility;
 use App\Models\IndustryPartner;
 use App\Models\Media;
-use App\Models\StaffMember;
 use App\Models\StudentWork;
 use App\Models\User;
 use Illuminate\View\View;
@@ -19,17 +19,13 @@ class DashboardController extends Controller
     {
         $partnerCount = IndustryPartner::count();
 
-        // Hitung User ber-role 'guru' yang aktif (sinkron dengan GuruController)
         $guruCount = User::query()
+            ->active()
             ->where(function ($q) {
-                if (method_exists(User::class, 'scopeRole')) {
-                    $q->role('guru');
-                } else {
-                    $q->whereHas('roles', fn ($r) => $r->where('name', 'guru'))
-                      ->orWhere('role', 'guru');
-                }
+                $guruRoleValue = UserRole::Guru->value;
+                $q->whereHas('roles', fn ($r) => $r->where('name', $guruRoleValue))
+                  ->orWhere('role', $guruRoleValue);
             })
-            ->where('is_active', true)
             ->count();
 
         return view('admin.dashboard', [
@@ -41,13 +37,11 @@ class DashboardController extends Controller
             'partnerCount'         => $partnerCount,
             'industryPartnerCount' => $partnerCount,
             
-            // Statistik Modul Media
             'mediaCount'           => Media::count(),
             'totalMediaSize'       => Media::sum('size') ?? 0,
 
-            // Ringkasan Widget Terbaru
-            'recentActivities'     => Activity::latest('created_at')->take(5)->get(),
-            'recentStudentWorks'   => StudentWork::latest('created_at')->take(5)->get(),
+            'recentActivities'     => Activity::with('cover')->latest('created_at')->take(5)->get(),
+            'recentStudentWorks'   => StudentWork::with('cover')->latest('created_at')->take(5)->get(),
             'recentMedia'          => Media::latest('created_at')->take(6)->get(),
         ]);
     }

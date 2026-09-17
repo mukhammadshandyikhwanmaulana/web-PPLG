@@ -6,7 +6,6 @@
 @php
     $staffList = $staffMembers ?? collect([]);
     $mappedStaffs = $staffList->map(function ($s) {
-        // Menggunakan relasi photo yang benar sesuai model StaffMember
         $photoRel = $s->photo ?? null;
         $photoPath = $photoRel?->file_path ?? $photoRel?->path ?? $s->avatar ?? null;
         $photoUrl = null;
@@ -64,7 +63,7 @@
                 </div>
             </div>
 
-            {{-- Pilihan Ketua Kompetensi Keahlian --}}
+            <!-- Pilihan Ketua Kompetensi Keahlian -->
             <div>
                 <label for="staff_member_id" class="block text-sm font-semibold text-slate-900 mb-1.5">
                     Ketua Kompetensi Keahlian <span class="text-rose-500 ml-1">*</span>
@@ -87,7 +86,7 @@
                 </p>
             </div>
 
-            {{-- Kartu Preview Informasi Terpilih (Dynamic via Alpine.js) --}}
+            <!-- Kartu Preview Informasi Terpilih (Dynamic via Alpine.js) -->
             <div x-show="activeStaff" x-cloak x-transition
                  class="p-4 border border-indigo-100 rounded-xl bg-indigo-50/40 flex items-center gap-4">
                 <div class="w-14 h-14 rounded-xl overflow-hidden bg-white shrink-0 border border-indigo-200 shadow-xs flex items-center justify-center">
@@ -107,7 +106,7 @@
                 </div>
             </div>
 
-            {{-- Teks Sambutan --}}
+            <!-- Teks Sambutan -->
             <div>
                 <label for="content" class="block text-sm font-semibold text-slate-900 mb-1.5">
                     Isi Sambutan <span class="text-rose-500 ml-1">*</span>
@@ -120,7 +119,7 @@
                 @enderror
             </div>
 
-            {{-- Area Tombol CTA --}}
+            <!-- Area Tombol CTA -->
             <div class="pt-5 border-t border-slate-200 flex items-center justify-between sm:justify-end gap-3">
                 <a href="{{ route('admin.dashboard') }}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition text-center shrink-0">Batal</a>
                 <button type="submit" class="inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow-xs transition duration-150 text-sm cursor-pointer whitespace-nowrap shrink-0">

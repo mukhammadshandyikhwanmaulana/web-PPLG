@@ -14,3 +14,17 @@
 [x-cloak] {
     display: none !important;
 }
+
+/* ==========================================================================
+   FIX FOOTER BERGERAK / JUMPING LAYOUT
+   ========================================================================== */
+html {
+    height: 100%;
+    overflow-y: scroll; /* Paksa scrollbar vertikal selalu muncul agar lebar layar tidak bergeser */
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}

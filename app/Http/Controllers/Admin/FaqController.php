@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\UpdateFaqRequest;
 use App\Models\Faq;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class FaqController extends Controller
@@ -33,7 +34,7 @@ class FaqController extends Controller
             ->withQueryString();
 
         return view('admin.faq.index', [
-            'faqs' => $faqs,
+            'faqs'   => $faqs,
             'search' => $search,
         ]);
     }
@@ -48,15 +49,17 @@ class FaqController extends Controller
     public function store(StoreFaqRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        
-        if (! isset($data['sort_order']) || $data['sort_order'] === null) {
-            $data['sort_order'] = (Faq::max('sort_order') ?? 0) + 1;
-        }
 
-        $data['created_by'] = auth()->id();
-        $data['updated_by'] = auth()->id();
+        DB::transaction(function () use (&$data) {
+            if (! isset($data['sort_order']) || $data['sort_order'] === null) {
+                $data['sort_order'] = (Faq::max('sort_order') ?? 0) + 1;
+            }
 
-        Faq::create($data);
+            $data['created_by'] = auth()->id();
+            $data['updated_by'] = auth()->id();
+
+            Faq::create($data);
+        });
 
         return redirect()
             ->route('admin.faq.index')

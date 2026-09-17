@@ -46,8 +46,9 @@ class AchievementController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
-        // Rekomendasi prestasi lainnya
-        $otherAchievements = Achievement::published()
+        // Rekomendasi prestasi lainnya (ditambahkan with('document'))
+        $otherAchievements = Achievement::with('document')
+            ->published()
             ->where('id', '!=', $achievement->id)
             ->orderByDesc('achievement_date')
             ->take(3)

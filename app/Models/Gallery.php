@@ -11,6 +11,8 @@ class Gallery extends Model
 {
     use HasFactory;
 
+    protected $table = 'galleries';
+
     protected $fillable = [
         'media_id',
         'galleryable_id',
@@ -22,11 +24,13 @@ class Gallery extends Model
     protected function casts(): array
     {
         return [
-            'media_id' => 'integer',
-            'is_cover' => 'boolean',
+            'media_id'   => 'integer',
+            'is_cover'   => 'boolean',
             'sort_order' => 'integer',
         ];
     }
+
+    /* ================= RELATIONS ================= */
 
     public function media(): BelongsTo
     {

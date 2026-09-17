@@ -167,6 +167,12 @@
         </table>
     </div>
 
+    @if (method_exists($banners, 'hasPages') && $banners->hasPages())
+        <div class="px-4 py-3 bg-white border border-slate-300 rounded-2xl shadow-xs">
+            {{ $banners->links() }}
+        </div>
+    @endif
+
     <!-- MODAL PREVIEW FOTO (LIGHTBOX) -->
     <div x-show="previewOpen" 
          x-transition:enter="transition ease-out duration-200"

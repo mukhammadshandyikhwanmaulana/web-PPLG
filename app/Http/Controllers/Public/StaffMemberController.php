@@ -25,7 +25,7 @@ class StaffMemberController extends Controller
         });
 
         // Fallback jika tidak ditemukan kata kunci 'ketua', ambil data pertama
-        if (!$ketua && $allStaff->isNotEmpty()) {
+        if (! $ketua && $allStaff->isNotEmpty()) {
             $ketua = $allStaff->first();
         }
 

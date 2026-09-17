@@ -30,10 +30,9 @@
              this.isPdf = file.type === 'application/pdf';
 
              if (!this.isPdf && file.type.startsWith('image/')) {
-                 // Panggil Cropper Modal Global untuk file gambar
                  $dispatch('open-cropper', {
                      title: 'Potong Gambar Bukti Prestasi',
-                     aspectRatio: null, // Free ratio agar fleksibel mengikuti bentuk sertifikat/foto
+                     aspectRatio: null,
                      file: file,
                      targetInput: $refs.docInput,
                      onCropComplete: (croppedFile) => {
@@ -104,10 +103,13 @@
                 {{-- Level --}}
                 <div>
                     <label for="level" class="block text-sm font-semibold text-slate-900 mb-1.5">Tingkat Prestasi <span class="text-rose-500 ml-1">*</span></label>
+                    @php
+                        $currentLevel = old('level', is_object($achievement->level) ? $achievement->level->value : $achievement->level);
+                    @endphp
                     <select name="level" id="level" class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition bg-white cursor-pointer @error('level') border-rose-300 bg-rose-50/30 @enderror" required>
                         <option value="">-- Pilih Level --</option>
                         @foreach(\App\Enums\AchievementLevel::cases() as $levelEnum)
-                            <option value="{{ $levelEnum->value }}" {{ old('level', is_object($achievement->level) ? $achievement->level->value : $achievement->level) === $levelEnum->value ? 'selected' : '' }}>
+                            <option value="{{ $levelEnum->value }}" {{ $currentLevel === $levelEnum->value ? 'selected' : '' }}>
                                 {{ method_exists($levelEnum, 'label') ? $levelEnum->label() : ucfirst($levelEnum->value) }}
                             </option>
                         @endforeach
@@ -120,7 +122,7 @@
                 {{-- Achievement Date --}}
                 <div>
                     <label for="achievement_date" class="block text-sm font-semibold text-slate-900 mb-1.5">Tanggal Perolehan <span class="text-rose-500 ml-1">*</span></label>
-                    <input type="date" name="achievement_date" id="achievement_date" value="{{ old('achievement_date', is_string($achievement->achievement_date) ? $achievement->achievement_date : optional($achievement->achievement_date)->format('Y-m-d')) }}" required class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition bg-white cursor-pointer @error('achievement_date') border-rose-300 bg-rose-50/30 @enderror">
+                    <input type="date" name="achievement_date" id="achievement_date" value="{{ old('achievement_date', is_string($achievement->achievement_date) ? \Carbon\Carbon::parse($achievement->achievement_date)->format('Y-m-d') : optional($achievement->achievement_date)->format('Y-m-d')) }}" required class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition bg-white cursor-pointer @error('achievement_date') border-rose-300 bg-rose-50/30 @enderror">
                     @error('achievement_date')
                         <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
                     @enderror
@@ -144,7 +146,7 @@
                 {{-- Live Preview Berkas Baru --}}
                 <div x-show="fileName" x-cloak class="mb-3 p-3 border border-indigo-200 rounded-xl bg-indigo-50/50">
                     <p class="text-xs text-indigo-700 font-semibold mb-2">Berkas Baru yang Dipilih:</p>
-                    
+
                     <template x-if="isPdf">
                         <div class="flex items-center gap-2 text-sm text-slate-700">
                             <svg class="w-6 h-6 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,9 +207,12 @@
             {{-- Status --}}
             <div>
                 <label for="status" class="block text-sm font-semibold text-slate-900 mb-1.5">Status Publikasi <span class="text-rose-500 ml-1">*</span></label>
+                @php
+                    $currentStatus = old('status', is_object($achievement->status) ? $achievement->status->value : $achievement->status);
+                @endphp
                 <select name="status" id="status" class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition bg-white cursor-pointer @error('status') border-rose-300 bg-rose-50/30 @enderror" required>
                     @foreach(\App\Enums\PublishStatus::cases() as $statusEnum)
-                        <option value="{{ $statusEnum->value }}" {{ old('status', is_object($achievement->status) ? $achievement->status->value : $achievement->status) === $statusEnum->value ? 'selected' : '' }}>
+                        <option value="{{ $statusEnum->value }}" {{ $currentStatus === $statusEnum->value ? 'selected' : '' }}>
                             {{ method_exists($statusEnum, 'label') ? $statusEnum->label() : ucfirst($statusEnum->value) }}
                         </option>
                     @endforeach

@@ -85,6 +85,11 @@ class MediaController extends Controller
         $groupedItems = collect();
         $processedGroupKeys = [];
 
+        $allGalleriesGrouped = Gallery::whereIn('media_id', $mediaIds)
+            ->with('media')
+            ->get()
+            ->groupBy(fn ($g) => $g->galleryable_type . '_' . $g->galleryable_id);
+
         foreach ($mediaPaginated as $item) {
             $item->file_url = Storage::disk($item->disk ?? 'public')->url($item->path);
 
@@ -113,10 +118,7 @@ class MediaController extends Controller
                 [$entityType, $entityId] = explode('_', $groupKey, 2);
                 $entityModel = $gallery ? $gallery->galleryable : ($activitiesCover->get($item->id) ?? $achievementsCover->get($item->id) ?? $facilitiesCover->get($item->id) ?? $partnersLogo->get($item->id));
                 
-                $galleryMedia = Gallery::where('galleryable_type', $entityType)
-                    ->where('galleryable_id', $entityId)
-                    ->with('media')
-                    ->get()
+                $galleryMedia = ($allGalleriesGrouped->get($groupKey) ?? collect())
                     ->pluck('media')
                     ->filter();
 

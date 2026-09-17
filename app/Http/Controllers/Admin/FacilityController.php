@@ -10,7 +10,6 @@ use App\Models\Media;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -74,9 +73,8 @@ class FacilityController extends Controller
     public function update(UpdateFacilityRequest $request, Facility $facility): RedirectResponse
     {
         $data = $request->validated();
-        $oldPhoto = null;
 
-        DB::transaction(function () use ($request, $facility, $data, &$oldPhoto) {
+        DB::transaction(function () use ($request, $facility, $data) {
             $mediaId = $this->storePhotoIfPresent($request);
             $oldSortOrder = (int) ($facility->sort_order ?? 0);
             $newSortOrder = (isset($data['sort_order']) && $data['sort_order'] > 0) ? (int) $data['sort_order'] : $oldSortOrder;
@@ -101,6 +99,9 @@ class FacilityController extends Controller
             if ($mediaId !== null) {
                 if ($facility->photo_media_id) {
                     $oldPhoto = Media::find($facility->photo_media_id);
+                    if ($oldPhoto) {
+                        $oldPhoto->forceDelete();
+                    }
                 }
                 $updateData['photo_media_id'] = $mediaId;
             } else {
@@ -116,25 +117,15 @@ class FacilityController extends Controller
             $facility->update($updateData);
         });
 
-        if ($oldPhoto) {
-            $isUsedElsewhere = Facility::where('photo_media_id', $oldPhoto->id)->where('id', '!=', $facility->id)->exists();
-            if (!$isUsedElsewhere) {
-                Storage::disk($oldPhoto->disk ?? 'public')->delete($oldPhoto->path);
-                $oldPhoto->forceDelete();
-            }
-        }
-
         return redirect()->route('admin.fasilitas.index')->with('success', 'Fasilitas berhasil diperbarui.');
     }
 
     public function destroy(Facility $facility): RedirectResponse
     {
-        $oldPhoto = null;
-
-        DB::transaction(function () use ($facility, &$oldPhoto) {
+        DB::transaction(function () use ($facility) {
             $deletedOrder = (int) ($facility->sort_order ?? 0);
-            if ($facility->photo_media_id) {
-                 $oldPhoto = Media::find($facility->photo_media_id);
+            if ($facility->photo) {
+                $facility->photo->forceDelete();
             }
             $facility->forceDelete();
 
@@ -142,14 +133,6 @@ class FacilityController extends Controller
                 Facility::where('sort_order', '>', $deletedOrder)->decrement('sort_order');
             }
         });
-
-        if ($oldPhoto) {
-             $isUsedElsewhere = Facility::where('photo_media_id', $oldPhoto->id)->exists();
-             if (!$isUsedElsewhere) {
-                 Storage::disk($oldPhoto->disk ?? 'public')->delete($oldPhoto->path);
-                 $oldPhoto->forceDelete();
-             }
-        }
 
         return redirect()->route('admin.fasilitas.index')->with('success', 'Fasilitas berhasil dihapus.');
     }

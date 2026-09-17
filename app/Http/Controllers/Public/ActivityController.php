@@ -45,8 +45,9 @@ class ActivityController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
-        // Kegiatan terbaru lainnya sebagai rekomendasi bacaan
-        $recentActivities = Activity::published()
+        // Kegiatan terbaru lainnya (ditambahkan with(['cover', 'galleries.media']))
+        $recentActivities = Activity::with(['cover', 'galleries.media'])
+            ->published()
             ->where('id', '!=', $activity->id)
             ->orderByDesc('event_date')
             ->take(4)

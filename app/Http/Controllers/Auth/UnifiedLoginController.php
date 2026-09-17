@@ -16,18 +16,17 @@ class UnifiedLoginController extends Controller
 {
     use AuthenticatesWithRole;
 
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
+        // 1. Jika user sudah login, arahkan ke dashboard sesuai role masing-masing
         if (Auth::check()) {
-            /** @var \App\Models\User $user */
             $user = Auth::user();
-            $userRoleValue = $user->role instanceof UserRole ? $user->role->value : (string) $user->role;
+            
+            if ($user->role === UserRole::Guru->value || (is_object($user->role) && $user->role === UserRole::Guru)) {
+                return redirect()->route('guru.dashboard');
+            }
 
-            $isAdmin = method_exists($user, 'hasRole') 
-                ? $user->hasRole(UserRole::Admin->value) 
-                : ($userRoleValue === UserRole::Admin->value);
-
-            return redirect()->route($isAdmin ? 'admin.dashboard' : 'guru.dashboard');
+            return redirect()->route('admin.dashboard');
         }
 
         return view('auth.login');
@@ -67,21 +66,14 @@ class UnifiedLoginController extends Controller
         // 3. Eksekusi Attempt Login + Throttle + Logging + Validasi Peran via Trait
         $this->attemptLogin($request, $selectedRole);
 
-        /** @var \App\Models\User $user */
+        // 4. Pengalihan Dinamis Sesuai Role Pengguna
         $user = Auth::user();
+        
+        $targetRoute = ($selectedRole === UserRole::Guru || $user?->role === UserRole::Guru->value) 
+            ? 'guru.dashboard' 
+            : 'admin.dashboard';
 
-        // 4. Pengalihan Sesuai Role Sebenarnya dan Pilihan Form Login
-        $userRoleValue = $user->role instanceof UserRole ? $user->role->value : (string) $user->role;
-
-        $isAdmin = method_exists($user, 'hasRole') 
-            ? $user->hasRole(UserRole::Admin->value) 
-            : ($userRoleValue === UserRole::Admin->value);
-
-        $targetRoute = $isAdmin 
-            ? ($selectedRole === UserRole::Guru ? route('guru.dashboard') : route('admin.dashboard')) 
-            : route('guru.dashboard');
-
-        return redirect()->intended($targetRoute);
+        return redirect()->intended(route($targetRoute));
     }
 
     public function destroy(Request $request): RedirectResponse

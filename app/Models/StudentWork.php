@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PublishStatus;
 use App\Notifications\AdminActivityNotification;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,17 +35,21 @@ class StudentWork extends Model
         'updated_by',
     ];
 
+    protected $appends = [
+        'cover_url',
+    ];
+
     protected function casts(): array
     {
         return [
-            'is_featured'    => 'boolean',
-            'published_at'   => 'datetime',
-            'status'         => class_exists(PublishStatus::class) ? PublishStatus::class : 'string',
-            'user_id'        => 'integer',
-            'supervisor_id'  => 'integer',
-            'cover_media_id' => 'integer',
-            'created_by'     => 'integer',
-            'updated_by'     => 'integer',
+            'is_featured'   => 'boolean',
+            'published_at'  => 'datetime',
+            'status'        => PublishStatus::class,
+            'user_id'       => 'integer',
+            'supervisor_id' => 'integer',
+            'cover_media_id'=> 'integer',
+            'created_by'    => 'integer',
+            'updated_by'    => 'integer',
         ];
     }
 
@@ -72,7 +77,13 @@ class StudentWork extends Model
         $actor = auth()->user();
         if (! $actor) return;
 
-        $admins = User::query()->admin()->active()->get();
+        // Kirim notifikasi ke admin lain (Kecuali actor yang sedang membuat/mengubah data)
+        $admins = User::query()
+            ->admin()
+            ->active()
+            ->where('id', '!=', $actor->id)
+            ->get();
+
         if ($admins->isEmpty()) return;
 
         $url = \Illuminate\Support\Facades\Route::has('admin.karya-siswa.index') 
@@ -87,6 +98,34 @@ class StudentWork extends Model
             subjectUrl: $action === 'deleted' ? null : $url
         ));
     }
+
+    /* ================= ACCESSORS ================= */
+
+    /**
+     * Accessor Sampul Karya yang Aman dari N+1 Query.
+     */
+    protected function coverUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                // Gunakan relasi yang di-load tanpa memaksa query tambahan ke DB
+                if ($this->relationLoaded('cover') && $this->cover) {
+                    return $this->cover->url;
+                }
+
+                if ($this->relationLoaded('galleries') && $this->galleries->isNotEmpty()) {
+                    $firstGallery = $this->galleries->first();
+                    if ($firstGallery && $firstGallery->relationLoaded('media') && $firstGallery->media) {
+                        return $firstGallery->media->url;
+                    }
+                }
+
+                return null;
+            }
+        );
+    }
+
+    /* ================= RELATIONS ================= */
 
     public function user(): BelongsTo
     {
@@ -118,27 +157,11 @@ class StudentWork extends Model
         return $this->morphMany(Gallery::class, 'galleryable')->orderBy('sort_order');
     }
 
-    public function getCoverUrlAttribute(): ?string
-    {
-        $coverMedia = $this->relationLoaded('cover') ? $this->cover : $this->cover()->first();
-        if ($coverMedia) {
-            return $coverMedia->url;
-        }
-
-        if ($this->relationLoaded('galleries') && $this->galleries->isNotEmpty()) {
-            $firstGallery = $this->galleries->first();
-            if ($firstGallery && $firstGallery->media) {
-                return $firstGallery->media->url;
-            }
-        }
-
-        return null;
-    }
+    /* ================= SCOPES ================= */
 
     public function scopePublished(Builder $query): Builder
     {
-        $publishedValue = class_exists(PublishStatus::class) ? PublishStatus::Published : 'published';
-        return $query->where('status', $publishedValue);
+        return $query->where('status', PublishStatus::Published);
     }
 
     public function scopeFeatured(Builder $query): Builder

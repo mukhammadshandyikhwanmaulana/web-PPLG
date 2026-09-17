@@ -36,13 +36,19 @@
                     }
 
                     // Triggers Cropper modal global (Aspect ratio 16:9 untuk Hero)
-                    $dispatch('open-cropper', {
-                        title: 'Potong Gambar Hero Banner (16:9)',
-                        aspectRatio: 16 / 9,
-                        file: file,
-                        targetInput: $refs.heroInput,
-                        targetPreview: $refs.heroPreviewImg
-                    });
+                    window.dispatchEvent(new CustomEvent('open-cropper', {
+                        detail: {
+                            title: 'Potong Gambar Hero Banner (16:9)',
+                            aspectRatio: 16 / 9,
+                            file: file,
+                            targetInput: $refs.heroInput,
+                            onCropComplete: (croppedFile) => {
+                                if ($refs.heroPreviewImg) {
+                                    $refs.heroPreviewImg.src = URL.createObjectURL(croppedFile);
+                                }
+                            }
+                        }
+                    }));
 
                     this.hasImage = true;
                 }
@@ -92,7 +98,7 @@
             </div>
 
             <div class="pt-5 border-t border-slate-200 flex items-center justify-between sm:justify-end gap-3">
-                <a href="{{ route('admin.banner.index') }}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition text-center">Batal</a>
+                <a href="{{ route('admin.banner.index') }}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition text-center shrink-0">Batal</a>
                 <button type="submit" class="inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow-xs transition duration-150 text-sm cursor-pointer whitespace-nowrap shrink-0">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     Simpan

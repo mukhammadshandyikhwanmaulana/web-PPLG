@@ -25,15 +25,15 @@ class Setting extends Model
     ];
 
     /**
-     * Memastikan hanya ada 1 baris pengaturan yang dipanggil (dengan caching aman).
+     * Singleton Pattern dengan Caching Aman.
      */
     public static function current(): self
     {
         $data = Cache::rememberForever('site_settings', function () {
             $setting = static::first() ?? static::create([
-                'site_name' => 'PPLG System',
-                'site_tagline' => 'Pengembangan Perangkat Lunak dan Gim',
-                'site_description' => 'Website Resmi Kompetensi Keahlian PPLG',
+                'site_name'        => 'PPLG System',
+                'site_tagline'     => 'Pengembangan Perangkat Lunak dan Gim',
+                'site_description' => 'Website Resmi Kompetensi Keahlian PPLG SMKN 1 Bangsri',
             ]);
 
             return $setting->toArray();
@@ -47,9 +47,6 @@ class Setting extends Model
         return (new static())->newFromBuilder($data);
     }
 
-    /**
-     * Otomatis bersihkan cache pengaturan saat ada perubahan data.
-     */
     protected static function booted(): void
     {
         static::saved(function () {

@@ -5,6 +5,7 @@
 @section('content')
 <div class="max-w-7xl mx-auto space-y-4 sm:space-y-6 px-4 sm:px-6 lg:px-8 py-4">
     
+    <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <div class="mb-2">
@@ -25,6 +26,7 @@
         </div>
     </div>
 
+    <!-- Form Card Container -->
     <div class="bg-white rounded-2xl border border-slate-300 shadow-xs p-4 sm:p-6 space-y-6">
 
         <form method="POST" action="{{ route('admin.media.update', ['medium' => $media]) }}" enctype="multipart/form-data" class="space-y-6"
@@ -125,6 +127,7 @@
 
             @include('admin.media._form', ['media' => $media])
 
+            <!-- Submit Button Bar -->
             <div class="pt-4 border-t border-slate-200 flex items-center justify-between sm:justify-end gap-3">
                 <a href="{{ route('admin.media.index') }}" 
                    class="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition text-center shrink-0">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreGuruRequest;
 use App\Http\Requests\Admin\UpdateGuruRequest;
@@ -20,16 +21,13 @@ class GuruController extends Controller
     {
         $search = trim((string) $request->input('search', ''));
         $status = $request->input('status');
+        $guruRoleValue = UserRole::Guru->value;
 
         $guru = User::query()
             ->select('users.*')
-            ->where(function ($q) {
-                if (method_exists(User::class, 'scopeRole')) {
-                    $q->role('guru');
-                } else {
-                    $q->whereHas('roles', fn ($r) => $r->where('name', 'guru'))
-                      ->orWhere('role', 'guru');
-                }
+            ->where(function ($q) use ($guruRoleValue) {
+                $q->whereHas('roles', fn ($r) => $r->where('name', $guruRoleValue))
+                  ->orWhere('role', $guruRoleValue);
             })
             ->leftJoin('staff_members', 'staff_members.user_id', '=', 'users.id')
             ->with(['staffMember.photo'])
@@ -87,13 +85,12 @@ class GuruController extends Controller
                 'email'     => $data['email'],
                 'password'  => bcrypt($data['password']),
                 'avatar'    => $mediaData['path'] ?? null,
+                'role'      => UserRole::Guru->value,
                 'is_active' => $data['is_active'] ?? true,
             ]);
 
             if (method_exists($user, 'assignRole')) {
-                $user->assignRole('guru');
-            } else {
-                $user->update(['role' => 'guru']);
+                $user->assignRole(UserRole::Guru->value);
             }
 
             $positions = $request->input('positions', []);
@@ -219,9 +216,10 @@ class GuruController extends Controller
 
     protected function ensureIsGuru(User $user): void
     {
+        $guruRoleValue = UserRole::Guru->value;
         $isGuru = method_exists($user, 'hasRole') 
-            ? $user->hasRole('guru') 
-            : (($user->role ?? '') === 'guru');
+            ? $user->hasRole($guruRoleValue) 
+            : (($user->role instanceof UserRole ? $user->role->value : $user->role) === $guruRoleValue);
 
         abort_unless($isGuru, 404);
     }

@@ -28,7 +28,7 @@
     </style>
 
     <!-- ================= 1. HERO SECTION ================= -->
-    <section class="relative bg-slate-950 w-full min-h-screen flex flex-col justify-center items-center overflow-hidden font-sans" 
+    <section class="relative bg-slate-950 w-full min-h-screen flex flex-col justify-center items-center font-sans" 
              x-data="{
                  activeSlide: 0,
                  slidesCount: {{ max($slides->count(), 1) }},
@@ -49,7 +49,7 @@
              @mouseleave="isPaused = false"
              @focusin="isPaused = true"
              @focusout="isPaused = false">
-        
+
         {{-- Background Image Slider --}}
         <div class="absolute inset-0 w-full h-full">
             @foreach($slides as $index => $imageUrl)
@@ -61,13 +61,13 @@
                      x-transition:leave-start="opacity-100"
                      x-transition:leave-end="opacity-0"
                      class="absolute inset-0 w-full h-full">
-                    
+
                     <img src="{{ $imageUrl }}" 
                          alt="Suasana PPLG SMKN 1 Bangsri {{ $index + 1 }}" 
                          class="w-full h-full object-cover object-center" 
                          @if($loop->first) fetchpriority="high" @else loading="lazy" decoding="async" @endif
                          onerror="this.src='{{ asset('images/placeholder-pplg.webp') }}'">
-                    
+
                     <div class="absolute inset-0 bg-slate-950/60"></div>
                     <div class="absolute inset-0 bg-gradient-to-b from-slate-750/80 via-transparent to-slate-750/90"></div>
                 </div>
@@ -77,7 +77,7 @@
         {{-- Konten Utama Hero --}}
         <div class="relative z-20 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-28 sm:pt-36 lg:pt-40 pb-12 my-auto text-center flex flex-col items-center justify-center">
             <div class="max-w-4xl mx-auto flex flex-col items-center w-full">
-                
+
                 {{-- HEADING FORMAL & STATIS --}}
                 <h1 class="font-sans font-bold text-3xl sm:text-5xl md:text-6xl lg:text-7xl tracking-tighter leading-tight text-white drop-shadow-md mb-3">
                     Pengembangan Perangkat <span class="text-orange-500">Lunak</span> dan <span class="text-orange-500">Gim</span>
@@ -117,7 +117,7 @@
                     </p>
                 </div>
 
-                {{-- DESKRIPSI DINAMIS DARI ADMIN (RINGKASAN TENTANG PPLG) --}}
+                {{-- DESKRIPSI DINAMIS DARI ADMIN --}}
                 <p class="font-sans text-xs sm:text-sm md:text-base text-slate-200/90 leading-relaxed max-w-2xl mx-auto mb-8 font-normal tracking-tight">
                     {{ $profile?->about_excerpt ?? 'Kompetensi keahlian di SMKN 1 Bangsri yang membekali siswa dengan keterampilan pengembangan perangkat lunak, teknologi digital, dan gim sesuai kebutuhan dunia industri.' }}
                 </p>
@@ -139,7 +139,7 @@
     @if(isset($principalWelcome) && $principalWelcome->is_active)
         @php
             $staff = $principalWelcome->staffMember;
-            
+
             $photoPath = $staff?->photo?->file_path 
                 ?? $staff?->photo?->path 
                 ?? $staff?->photo_path;
@@ -147,10 +147,9 @@
             $staffPhotoUrl = $photoPath 
                 ? Storage::url($photoPath) 
                 : asset('images/placeholder-staff.webp');
-            
+
             $staffName = $staff?->name ?? 'Ketua Kompetensi Keahlian';
 
-            // LOGIKA FILTERING JABATAN AGAR HANYA MUNCUL: KETUA KOMPETENSI KEAHLIAN PPLG
             $rawPosition = $staff?->position ?? '';
             $positionLower = strtolower($rawPosition);
 
@@ -165,15 +164,15 @@
         @endphp
 
         <section id="sambutan-kaprog" class="py-10 sm:py-14 bg-white font-sans border-b border-slate-100">
-            
+
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-                
+
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start" x-data="{ isExpanded: false }">
-                    
+
                     {{-- FOTO & CARD NAMA KAPROG --}}
                     <div class="lg:col-span-4 flex flex-col items-center lg:items-start w-full">
                         <div class="relative w-full max-w-[240px] sm:max-w-[260px] mx-auto lg:mx-0 flex flex-col items-center">
-                            
+
                             <div class="w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-sm aspect-[4/5]">
                                 <img src="{{ $staffPhotoUrl }}" 
                                      alt="{{ $staffName }}" 
@@ -197,7 +196,7 @@
 
                     {{-- TEKS SAMBUTAN --}}
                     <div class="lg:col-span-8 flex flex-col justify-start bg-slate-50 p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm">
-                        
+
                         <div class="mb-3">
                             <h2 class="font-sans font-semibold text-2xl sm:text-3xl text-slate-900 tracking-tight leading-tight">
                                 Selamat Datang di Kompetensi Keahlian 
@@ -205,7 +204,7 @@
                             </h2>
                         </div>
                         <br>
-                        <div class="relative mb-3 overflow-hidden">
+                        <div class="relative mb-3">
                             <div :class="isExpanded ? '' : 'line-clamp-5 sm:line-clamp-6'" 
                                  class="font-sans text-slate-700 text-sm sm:text-base leading-relaxed font-normal tracking-tight break-words">
                                 {!! nl2br(e($principalWelcome->content)) !!}
@@ -228,15 +227,13 @@
         </section>
     @endif
 
-    <!-- ================= 2.5 SEKSYEN STATISTIK (RECTANGLE ORANYE) ================= -->
+    <!-- ================= 2.5 SEKSYEN STATISTIK ================= -->
     <section id="statistik" class="py-8 bg-slate-50/60 font-sans border-b border-slate-200/80">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            
-            {{-- CONTAINER CARD RECTANGLE ORANYE --}}
+
             <div class="bg-orange-500 rounded-2xl shadow-md p-6 sm:p-8">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-0 divide-y md:divide-y-0 md:divide-x divide-white/20">
-                    
-                    {{-- 1. TAHUN BERDIRI --}}
+
                     <div class="flex flex-col items-center justify-center p-3 text-center">
                         <span class="font-extrabold text-4xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-none mb-2">
                             {{ $tahunBerdiri ?? 2010 }}
@@ -246,7 +243,6 @@
                         </span>
                     </div>
 
-                    {{-- 2. KARYA SISWA --}}
                     <div class="flex flex-col items-center justify-center p-3 text-center pt-6 md:pt-3">
                         <span class="font-extrabold text-4xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-none mb-2">
                             {{ $totalStudentWorks ?? 0 }}
@@ -256,7 +252,6 @@
                         </span>
                     </div>
 
-                    {{-- 3. PRESTASI --}}
                     <div class="flex flex-col items-center justify-center p-3 text-center pt-6 md:pt-3">
                         <span class="font-extrabold text-4xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-none mb-2">
                             {{ $totalAchievements ?? 0 }}
@@ -266,7 +261,6 @@
                         </span>
                     </div>
 
-                    {{-- 4. FASILITAS --}}
                     <div class="flex flex-col items-center justify-center p-3 text-center pt-6 md:pt-3">
                         <span class="font-extrabold text-4xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-none mb-2">
                             {{ $totalFacilities ?? 0 }}
@@ -284,9 +278,9 @@
 
     <!-- ================= 3. SEKSYEN KARYA SISWA ================= -->
     <section id="karya-siswa" class="py-12 sm:py-16 bg-slate-50/50 font-sans border-b border-slate-100">
-        
+
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-            
+
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-12 items-end">
                 <div class="lg:col-span-6 space-y-1">
                     <h2 class="font-sans font-semibold text-2xl sm:text-3xl lg:text-4xl text-slate-900 tracking-tight leading-tight">
@@ -301,28 +295,36 @@
             </div>
 
             @if(isset($studentWorks) && $studentWorks->isNotEmpty())
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
                     @foreach($studentWorks->take(4) as $work)
                         @php
                             $imageUrl = $work->cover_url;
                             $demoUrl = $work->demo_url ?? $work->link ?? null;
-                            $detailUrl = route('public.student-works.show', $work->slug);
+                            $formattedDate = $work->published_at 
+                                ? $work->published_at->translatedFormat('d M Y') 
+                                : ($work->created_at ? $work->created_at->translatedFormat('d M Y') : '');
+                            $photosCount = $work->galleries ? $work->galleries->count() : 0;
+                            $detailUrl = route('public.student-works.show', $work->slug ?? $work->id);
                         @endphp
 
-                        <article class="flex flex-col bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm hover:shadow-md transition-all duration-200 h-full w-full overflow-hidden group">
-                            
-                            <div class="w-full aspect-[16/10] rounded-xl bg-slate-100 overflow-hidden relative select-none shrink-0 mb-3">
-                                <a href="{{ $detailUrl }}" class="block w-full h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500" aria-label="Lihat detail {{ $work->title }}">
+                        <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group h-full">
+
+                            <div>
+                                {{-- Sampul Karya (Mengarahkan ke Detail) --}}
+                                <a href="{{ $detailUrl }}" class="block w-full aspect-[16/10] bg-slate-100 border-b border-slate-100 overflow-hidden relative select-none p-1.5">
                                     @if($imageUrl)
                                         <img src="{{ $imageUrl }}" 
                                              alt="{{ $work->title }}" 
-                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                             class="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-300 ease-out"
                                              loading="lazy"
                                              decoding="async"
                                              onerror="this.src='{{ asset('images/placeholder-pplg.webp') }}'">
                                     @else
-                                        <div class="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100">
-                                            <span class="font-sans text-xs font-medium">Tidak ada preview</span>
+                                        <div class="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-1 bg-slate-100 rounded-xl">
+                                            <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                                            </svg>
+                                            <span class="text-[10px] font-semibold text-slate-400">Tidak ada foto karya</span>
                                         </div>
                                     @endif
 
@@ -332,39 +334,66 @@
                                         </div>
                                     @endif
                                 </a>
-                            </div>
 
-                            <div class="flex flex-col flex-grow justify-between space-y-2">
-                                <div class="space-y-1">
-                                    <h3 class="font-sans font-semibold text-slate-900 text-base leading-snug tracking-tight line-clamp-2 break-words group-hover:text-orange-600 transition-colors">
-                                        <a href="{{ $detailUrl }}" class="focus:outline-none focus-visible:underline">
-                                            {{ $work->title }}
-                                        </a>
+                                {{-- Content Body --}}
+                                <div class="p-4 space-y-2">
+
+                                    <div class="flex items-center justify-between gap-2">
+                                        @if($photosCount > 0)
+                                            <div class="flex items-center gap-1 text-[11px] font-bold text-orange-600">
+                                                <svg class="w-3.5 h-3.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2v12a2 2 0 002 2z"/>
+                                                </svg>
+                                                <span>{{ $photosCount }} Foto</span>
+                                            </div>
+                                        @else
+                                            <div></div>
+                                        @endif
+
+                                        @if($formattedDate)
+                                            <span class="text-[11px] text-slate-400 font-medium whitespace-nowrap">
+                                                {{ $formattedDate }}
+                                            </span>
+                                        @endif
+                                    </div>
+
+                                    <h3 class="font-sans font-semibold text-slate-900 text-base leading-snug line-clamp-2 hover:text-orange-600 transition-colors">
+                                        <a href="{{ $detailUrl }}">{{ $work->title }}</a>
                                     </h3>
 
                                     @if($work->contributor_name)
-                                        <p class="font-sans text-xs font-medium text-slate-600 truncate">
-                                            Pembuat: <span class="text-slate-800 font-semibold">{{ $work->contributor_name }}</span>
+                                        <p class="text-xs font-medium text-slate-600 truncate">
+                                            Karya: <span class="font-semibold text-slate-900">{{ $work->contributor_name }}</span>
                                         </p>
                                     @endif
+
+                                    <p class="text-slate-600 text-xs line-clamp-2 leading-relaxed font-normal">
+                                        {{ Str::limit(strip_tags($work->description ?? ''), 90) }}
+                                    </p>
+
                                 </div>
+                            </div>
+
+                            <!-- Footer Kartu -->
+                            <div class="px-4 pb-3 pt-2 border-t border-slate-100 mt-auto flex items-center justify-between text-xs font-semibold">
+                                <a href="{{ $detailUrl }}" class="inline-flex items-center gap-1 text-slate-500 hover:text-slate-900 transition-colors">
+                                    <span>Lihat Karya</span>
+                                    <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                </a>
 
                                 @if($demoUrl)
-                                    <div class="pt-2.5 border-t border-slate-100 mt-auto flex items-center justify-end w-full">
-                                        <a href="{{ $demoUrl }}" 
-                                           target="_blank" 
-                                           rel="noopener noreferrer"
-                                           class="font-sans inline-flex items-center gap-1 text-xs text-orange-600 hover:text-orange-700 font-semibold transition-colors shrink-0 focus:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 rounded-sm">
-                                            <span>Buka Demo</span>
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                                            </svg>
-                                        </a>
-                                    </div>
+                                    <a href="{{ $demoUrl }}" target="_blank" rel="noopener noreferrer" class="text-orange-600 hover:text-orange-700 transition-colors inline-flex items-center gap-1">
+                                        <span>Buka Demo</span>
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V4M14 4h6m0 0v6m0-6L10 14"/>
+                                        </svg>
+                                    </a>
                                 @endif
                             </div>
 
-                        </article>
+                        </div>
                     @endforeach
                 </div>
 
@@ -385,9 +414,9 @@
 
     <!-- ================= 4. SEKSYEN PRESTASI ================= -->
     <section id="prestasi" class="py-12 sm:py-16 bg-white font-sans border-b border-slate-100">
-        
+
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-            
+
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-12 items-end">
                 <div class="lg:col-span-6 space-y-1">
                     <h2 class="font-sans font-semibold text-2xl sm:text-3xl lg:text-4xl text-slate-900 tracking-tight leading-tight">
@@ -419,20 +448,20 @@
                                 : route('public.achievements.index');
                         @endphp
 
-                        <article class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between h-full group relative overflow-hidden">
-                            
+                        <article class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between h-full group relative">
+
                             <a href="{{ $detailUrl }}" class="flex flex-col h-full p-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-2xl" aria-label="Detail prestasi {{ $achievement->title }}">
                                 <div>
-                                    <div class="w-full aspect-[16/10] bg-slate-100 rounded-xl overflow-hidden relative select-none mb-4">
+                                    <div class="w-full aspect-[16/10] bg-slate-100 rounded-xl relative select-none mb-4">
                                         @if($imageUrl)
                                             <img src="{{ $imageUrl }}" 
                                                  alt="{{ $achievement->title }}" 
-                                                 class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                                                 class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300 rounded-xl"
                                                  loading="lazy"
                                                  decoding="async"
                                                  onerror="this.src='{{ asset('images/placeholder-pplg.webp') }}'">
                                         @else
-                                            <div class="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100">
+                                            <div class="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100 rounded-xl">
                                                 <span class="font-sans text-xs font-medium">Tidak ada foto</span>
                                             </div>
                                         @endif
@@ -499,9 +528,9 @@
 
     <!-- ================= 5. SEKSYEN KEGIATAN KEAHLIAN ================= -->
     <section id="kegiatan" class="py-12 sm:py-16 bg-slate-50/50 font-sans border-b border-slate-100">
-        
+
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-            
+
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-12 items-end">
                 <div class="lg:col-span-6 space-y-1">
                     <h2 class="font-sans font-semibold text-2xl sm:text-3xl lg:text-4xl text-slate-900 tracking-tight leading-tight">
@@ -527,20 +556,20 @@
                             $detailUrl = route('public.activities.show', $activity->slug);
                         @endphp
 
-                        <article class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between h-full group relative overflow-hidden">
-                            
+                        <article class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between h-full group relative">
+
                             <a href="{{ $detailUrl }}" class="flex flex-col h-full p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-2xl" aria-label="Detail kegiatan {{ $activity->title }}">
                                 <div>
-                                    <div class="w-full aspect-[16/10] rounded-xl bg-slate-100 overflow-hidden relative select-none shrink-0 mb-3">
+                                    <div class="w-full aspect-[16/10] rounded-xl bg-slate-100 relative select-none shrink-0 mb-3">
                                         @if($imageUrl)
                                             <img src="{{ $imageUrl }}" 
                                                  alt="{{ $activity->title }}" 
-                                                 class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                                                 class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300 rounded-xl"
                                                  loading="lazy"
                                                  decoding="async"
                                                  onerror="this.src='{{ asset('images/placeholder-pplg.webp') }}'">
                                         @else
-                                            <div class="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100">
+                                            <div class="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100 rounded-xl">
                                                 <span class="font-sans text-xs font-medium">Tidak ada foto</span>
                                             </div>
                                         @endif
@@ -598,8 +627,8 @@
 
     <!-- ================= 6. SEKSYEN FASILITAS & LABORATORIUM ================= -->
     <section id="fasilitas" class="py-12 sm:py-16 bg-white font-sans border-b border-slate-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-            
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8" x-data="{ showAllFacilities: false }">
+
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-12 items-end">
                 <div class="lg:col-span-6 space-y-1">
                     <h2 class="font-sans font-semibold text-2xl sm:text-3xl lg:text-4xl text-slate-900 tracking-tight leading-tight">
@@ -615,7 +644,7 @@
 
             @if(isset($facilities) && $facilities->isNotEmpty())
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
-                    @foreach($facilities->take(6) as $facility)
+                    @foreach($facilities as $index => $facility)
                         @php
                             $facilityPhotoPath = $facility->photo?->file_path ?? $facility->photo?->path ?? $facility->image_path;
                             $facilityPhotoUrl = $facilityPhotoPath 
@@ -623,8 +652,13 @@
                                 : asset('images/placeholder-facility.webp');
                         @endphp
 
-                        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between group hover:shadow-md transition-all duration-200">
-                            <div class="w-full aspect-[16/10] bg-slate-100 overflow-hidden relative select-none">
+                        <div x-show="showAllFacilities || {{ $index }} < 3"
+                             x-transition:enter="transition ease-out duration-300"
+                             x-transition:enter-start="opacity-0 scale-95"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             class="bg-white rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between group hover:shadow-md transition-all duration-200">
+
+                            <div class="w-full aspect-[16/10] bg-slate-100 relative select-none rounded-t-2xl overflow-hidden">
                                 <img src="{{ $facilityPhotoUrl }}" 
                                      alt="{{ $facility->name }}" 
                                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -648,6 +682,17 @@
                         </div>
                     @endforeach
                 </div>
+
+                {{-- TOMBOL CTA PERSIS SEPERTI SEKSYEN LAINNYA --}}
+                @if($facilities->count() > 3)
+                    <div class="flex items-center justify-center pt-2">
+                        <button @click="showAllFacilities = !showAllFacilities" 
+                                type="button"
+                                class="inline-flex items-center justify-center px-6 py-2.5 font-sans text-xs sm:text-sm font-semibold text-slate-800 bg-white hover:bg-orange-500 hover:text-white border border-slate-300 hover:border-orange-500 rounded-lg transition-all duration-200 tracking-wider uppercase cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">
+                            <span x-text="showAllFacilities ? 'Tampilkan Lebih Sedikit' : 'Lihat Semua Fasilitas ({{ $facilities->count() }})'"></span>
+                        </button>
+                    </div>
+                @endif
             @else
                 <div class="p-6 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-500 max-w-xl mx-auto">
                     <p class="font-sans text-sm">Belum ada data fasilitas yang dipublikasikan.</p>
@@ -659,14 +704,14 @@
 
     <!-- ================= 7. SEKSYEN MITRA INDUSTRI ================= -->
     <section id="mitra" class="py-10 sm:py-14 bg-white font-sans border-b border-slate-100">
-        
+
         @if(isset($partners) && $partners->isNotEmpty())
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="{ showAllPartners: false }">
-                
-                <div class="bg-orange-500 rounded-2xl relative overflow-hidden shadow-lg p-6 sm:p-8">
-                    
+
+                <div class="bg-orange-500 rounded-2xl relative shadow-lg p-6 sm:p-8">
+
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start relative z-10">
-                        
+
                         {{-- AREA KIRI: CTA UTAMA (AJUKAN KOLABORASI) --}}
                         <div class="lg:col-span-4 text-center lg:text-left space-y-4">
                             <div class="space-y-1">
@@ -685,7 +730,7 @@
                             </div>
                         </div>
 
-                        {{-- AREA KANAN: GRID LOGO + EXPAND INLINE TOGGLE --}}
+                        {{-- AREA KANAN: GRID LOGO --}}
                         <div class="lg:col-span-8 w-full space-y-4">
                             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 items-stretch justify-center">
                                 @foreach($partners as $index => $partner)
@@ -698,7 +743,7 @@
                                          x-transition:enter-start="opacity-0 scale-95"
                                          x-transition:enter-end="opacity-100 scale-100"
                                          class="group text-center flex flex-col items-center justify-between p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all duration-200 border border-white/20 h-full min-h-[110px]">
-                                        
+
                                         @if(!empty($partner->website_url))
                                             <a href="{{ $partner->website_url }}" 
                                                target="_blank" 
@@ -774,29 +819,32 @@
 
     </section>
 
-    <!-- ================= 8. SEKSYEN FAQ (KOLOM KANAN PERMANEN STICKY) ================= -->
-    <section id="faq" class="py-12 sm:py-16 bg-slate-50/50 font-sans border-b border-slate-100">
-        
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-                
-                {{-- KIRI: LIST ACCORDION PERTANYAAN (DI-SCROLL) --}}
-                <div class="lg:col-span-7 order-2 lg:order-1">
+    <!-- ================= 8. SEKSYEN FAQ (SMOOTH & STABIL) ================= -->
+    <section id="faq" class="pt-12 sm:pt-16 pb-16 sm:pb-24 bg-slate-50/50 font-sans border-b border-slate-100">
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+
+                {{-- KIRI: LIST ACCORDION PERTANYAAN --}}
+                <div class="lg:col-span-7 order-2 lg:order-1 min-h-[480px]">
                     @if(isset($faqs) && $faqs->isNotEmpty())
                         <div class="space-y-3" x-data="{ activeFaq: null }">
                             @foreach($faqs as $index => $faq)
-                                <div class="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden transition-all duration-200">
-                                    
+                                <div class="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden transition-all duration-300">
+
                                     <button @click="activeFaq = (activeFaq === {{ $index }} ? null : {{ $index }})"
                                             type="button"
-                                            class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-sans font-semibold text-slate-900 text-sm sm:text-base hover:text-orange-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer"
+                                            class="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-sans font-semibold text-slate-900 text-sm sm:text-base hover:text-orange-600 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer"
                                             :aria-expanded="activeFaq === {{ $index }}">
-                                        <span class="leading-snug tracking-tight">{{ $faq->question }}</span>
-                                        
-                                        <span class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-600 transition-transform duration-200"
+                                        <span class="leading-snug tracking-tight transition-colors duration-200" 
+                                              :class="activeFaq === {{ $index }} ? 'text-orange-600' : 'text-slate-900'">
+                                            {{ $faq->question }}
+                                        </span>
+
+                                        <span class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-600 transition-all duration-300"
                                               :class="activeFaq === {{ $index }} ? 'bg-orange-100 text-orange-600' : ''">
-                                            <svg class="w-4 h-4 transition-transform duration-200" 
+                                            <svg class="w-4 h-4 transition-transform duration-300 ease-in-out" 
                                                  :class="activeFaq === {{ $index }} ? 'rotate-45' : ''" 
                                                  fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -805,8 +853,9 @@
                                     </button>
 
                                     <div x-show="activeFaq === {{ $index }}"
+                                         x-cloak
                                          x-collapse
-                                         class="px-4 pb-5 sm:px-5 sm:pb-5 font-sans text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                                         class="px-4 pb-5 sm:px-5 sm:pb-5 font-sans text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3 transition-all duration-300 ease-in-out">
                                         {!! nl2br(e($faq->answer)) !!}
                                     </div>
 
@@ -820,23 +869,21 @@
                     @endif
                 </div>
 
-                {{-- KANAN: JUDUL UTAMA FAQ (TETAP DIEM / STICKY DI POJOK ATAS LAYAR) --}}
-                <div class="lg:col-span-5 order-1 lg:order-2">
-                    <div class="space-y-4 lg:sticky lg:top-28">
-                        <h2 class="font-sans font-semibold text-2xl sm:text-3xl lg:text-4xl text-slate-900 tracking-tight leading-tight">
-                            Pertanyaan yang Sering Diajukan (FAQ)
-                        </h2>
+                {{-- KANAN: JUDUL UTAMA FAQ --}}
+                <div class="lg:col-span-5 order-1 lg:order-2 space-y-4">
+                    <h2 class="font-sans font-semibold text-2xl sm:text-3xl lg:text-4xl text-slate-900 tracking-tight leading-tight">
+                        Pertanyaan yang Sering Diajukan (FAQ)
+                    </h2>
 
-                        <p class="font-sans text-sm text-slate-600 leading-relaxed font-normal tracking-tight">
-                            Temukan jawaban atas pertanyaan umum mengenai program keahlian, pembelajaran, serta peluang karir di PPLG SMKN 1 Bangsri.
-                        </p>
+                    <p class="font-sans text-sm text-slate-600 leading-relaxed font-normal tracking-tight">
+                        Temukan jawaban atas pertanyaan umum mengenai program keahlian, pembelajaran, serta peluang karir di PPLG SMKN 1 Bangsri.
+                    </p>
 
-                        <div class="pt-2">
-                            <a href="{{ route('public.faq.index') }}" 
-                               class="inline-flex items-center justify-center px-6 py-2.5 font-sans text-xs sm:text-sm font-semibold text-slate-800 bg-white hover:bg-orange-500 hover:text-white border border-slate-300 hover:border-orange-500 rounded-lg transition-all duration-200 tracking-wider uppercase cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 shadow-sm">
-                                <span>Lihat Semua FAQ</span>
-                            </a>
-                        </div>
+                    <div class="pt-2">
+                        <a href="{{ route('public.faq.index') }}" 
+                           class="inline-flex items-center justify-center px-6 py-2.5 font-sans text-xs sm:text-sm font-semibold text-slate-800 bg-white hover:bg-orange-500 hover:text-white border border-slate-300 hover:border-orange-500 rounded-lg transition-all duration-200 tracking-wider uppercase cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 shadow-sm">
+                            <span>Lihat Semua FAQ</span>
+                        </a>
                     </div>
                 </div>
 

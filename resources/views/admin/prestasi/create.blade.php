@@ -5,6 +5,7 @@
 @section('content')
 <div class="max-w-7xl mx-auto space-y-4 sm:space-y-6 px-4 sm:px-6 lg:px-8 py-4">
 
+    <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <div class="mb-2">
@@ -47,13 +48,19 @@
                     this.filePreview = null;
                 } else if (file.type.startsWith('image/')) {
                     // Panggil Cropper Modal Global untuk Gambar Prestasi (Rasio 16:9)
-                    $dispatch('open-cropper', {
-                        title: 'Potong Dokumen / Gambar Prestasi (16:9)',
-                        aspectRatio: 16 / 9,
-                        file: file,
-                        targetInput: $refs.docInput,
-                        targetPreview: $refs.docPreviewImg
-                    });
+                    window.dispatchEvent(new CustomEvent('open-cropper', {
+                        detail: {
+                            title: 'Potong Dokumen / Gambar Prestasi (16:9)',
+                            aspectRatio: 16 / 9,
+                            file: file,
+                            targetInput: $refs.docInput,
+                            onCropComplete: (croppedFile) => {
+                                if ($refs.docPreviewImg) {
+                                    $refs.docPreviewImg.src = URL.createObjectURL(croppedFile);
+                                }
+                            }
+                        }
+                    }));
                 }
             },
             resetFile() {
@@ -89,11 +96,11 @@
                 {{-- Level --}}
                 <div>
                     <label for="level" class="block text-sm font-semibold text-slate-900 mb-1.5">Tingkat / Level</label>
-                    <select name="level" id="level" class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition bg-white @error('level') border-rose-300 bg-rose-50/30 @enderror">
+                    <select name="level" id="level" class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition bg-white cursor-pointer @error('level') border-rose-300 bg-rose-50/30 @enderror">
                         <option value="">-- Pilih Level --</option>
                         @foreach(\App\Enums\AchievementLevel::cases() as $levelEnum)
                             <option value="{{ $levelEnum->value }}" {{ old('level') === $levelEnum->value ? 'selected' : '' }}>
-                                {{ $levelEnum->label() }}
+                                {{ method_exists($levelEnum, 'label') ? $levelEnum->label() : ucfirst($levelEnum->value) }}
                             </option>
                         @endforeach
                     </select>
@@ -105,7 +112,7 @@
                 {{-- Achievement Date --}}
                 <div>
                     <label for="achievement_date" class="block text-sm font-semibold text-slate-900 mb-1.5">Tanggal Prestasi</label>
-                    <input type="date" name="achievement_date" id="achievement_date" value="{{ old('achievement_date') }}" class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition bg-white @error('achievement_date') border-rose-300 bg-rose-50/30 @enderror">
+                    <input type="date" name="achievement_date" id="achievement_date" value="{{ old('achievement_date') }}" class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition bg-white cursor-pointer @error('achievement_date') border-rose-300 bg-rose-50/30 @enderror">
                     @error('achievement_date')
                         <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
                     @enderror
@@ -115,7 +122,7 @@
             {{-- Description --}}
             <div>
                 <label for="description" class="block text-sm font-semibold text-slate-900 mb-1.5">Deskripsi</label>
-                <textarea name="description" id="description" rows="4" placeholder="Penjelasan mengenai prestasi..." class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition resize-none @error('description') border-rose-300 bg-rose-50/30 @enderror">{{ old('description') }}</textarea>
+                <textarea name="description" id="description" rows="4" placeholder="Penjelasan mengenai prestasi..." class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition resize-y @error('description') border-rose-300 bg-rose-50/30 @enderror">{{ old('description') }}</textarea>
                 @error('description')
                     <p class="mt-1.5 text-xs text-rose-600 font-medium">{{ $message }}</p>
                 @enderror
@@ -157,10 +164,10 @@
             {{-- Status --}}
             <div>
                 <label for="status" class="block text-sm font-semibold text-slate-900 mb-1.5">Status Publikasi <span class="text-rose-500 ml-1">*</span></label>
-                <select name="status" id="status" class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition bg-white @error('status') border-rose-300 bg-rose-50/30 @enderror" required>
+                <select name="status" id="status" class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 shadow-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition bg-white cursor-pointer @error('status') border-rose-300 bg-rose-50/30 @enderror" required>
                     @foreach(\App\Enums\PublishStatus::cases() as $statusEnum)
                         <option value="{{ $statusEnum->value }}" {{ old('status', 'draft') === $statusEnum->value ? 'selected' : '' }}>
-                            {{ $statusEnum->label() }}
+                            {{ method_exists($statusEnum, 'label') ? $statusEnum->label() : ucfirst($statusEnum->value) }}
                         </option>
                     @endforeach
                 </select>
@@ -171,8 +178,8 @@
 
             {{-- Area Tombol CTA --}}
             <div class="pt-5 border-t border-slate-200 flex items-center justify-between sm:justify-end gap-3">
-                <a href="{{ route('admin.prestasi.index') }}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition text-center">Batal</a>
-                <button type="submit" class="inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow-xs transition duration-150 text-sm cursor-pointer">
+                <a href="{{ route('admin.prestasi.index') }}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition text-center shrink-0">Batal</a>
+                <button type="submit" class="inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow-xs transition duration-150 text-sm cursor-pointer shrink-0">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
