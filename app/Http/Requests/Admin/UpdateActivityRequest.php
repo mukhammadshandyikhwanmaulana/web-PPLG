@@ -41,22 +41,8 @@ class UpdateActivityRequest extends FormRequest
     {
         $inputContent = $this->input('content');
         $cleanContent = is_string($inputContent) ? trim($inputContent) : null;
-        $user = auth()->user();
-
-        // Pengecekan role Admin secara presisi
-        $isAdmin = false;
-        if ($user) {
-            if (method_exists($user, 'hasRole')) {
-                $isAdmin = $user->hasRole(UserRole::Admin->value);
-            } else {
-                $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
-                $isAdmin = $userRole === UserRole::Admin->value;
-            }
-        }
-
-        // Ambil status dari input, jika user adalah Guru paksa status tetap Draft
         $requestedStatus = $this->filled('status') ? $this->status : PublishStatus::Draft->value;
-        $finalStatus = $isAdmin ? $requestedStatus : PublishStatus::Draft->value;
+        $finalStatus = $requestedStatus;
 
         $this->merge([
             'title'   => $this->filled('title') ? trim((string) $this->title) : null,

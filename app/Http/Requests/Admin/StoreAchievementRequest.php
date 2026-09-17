@@ -27,18 +27,7 @@ class StoreAchievementRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $user = auth()->user();
-        $isGuru = false;
-        
-        if ($user) {
-            $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
-            $isGuru = (method_exists($user, 'hasRole') && $user->hasRole(UserRole::Guru->value)) || ($userRole === UserRole::Guru->value);
-        }
-
-        // Jika user adalah Guru, paksakan status publikasi menjadi Draft
-        $status = $isGuru 
-            ? PublishStatus::Draft->value 
-            : ($this->filled('status') ? $this->status : PublishStatus::Draft->value);
+        $status = $this->filled('status') ? $this->status : PublishStatus::Draft->value;
 
         $this->merge([
             'title'            => $this->filled('title') ? trim((string) $this->title) : null,

@@ -40,18 +40,7 @@ class UpdateAchievementRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $user = auth()->user();
-        $isGuru = false;
-
-        if ($user) {
-            $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
-            $isGuru = (method_exists($user, 'hasRole') && $user->hasRole(UserRole::Guru->value)) || ($userRole === UserRole::Guru->value);
-        }
-
-        // Paksakan status tetap Draft jika diubah oleh Guru
-        $status = $isGuru 
-            ? PublishStatus::Draft->value 
-            : ($this->filled('status') ? $this->status : null);
+        $status = $this->filled('status') ? $this->status : null;
 
         $this->merge([
             'title'            => $this->filled('title') ? trim((string) $this->title) : null,

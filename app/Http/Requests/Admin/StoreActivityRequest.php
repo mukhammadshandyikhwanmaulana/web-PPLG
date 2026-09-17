@@ -28,22 +28,7 @@ class StoreActivityRequest extends FormRequest
     {
         $inputContent = $this->input('content');
         $cleanContent = is_string($inputContent) ? trim($inputContent) : null;
-        $user = auth()->user();
-
-        // Pengecekan role Admin secara presisi
-        $isAdmin = false;
-        if ($user) {
-            if (method_exists($user, 'hasRole')) {
-                $isAdmin = $user->hasRole(UserRole::Admin->value);
-            } else {
-                $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
-                $isAdmin = $userRole === UserRole::Admin->value;
-            }
-        }
-
-        // Jika dipanggil oleh Guru, paksa status ke Draft
-        $requestedStatus = $this->filled('status') ? $this->status : PublishStatus::Draft->value;
-        $finalStatus = $isAdmin ? $requestedStatus : PublishStatus::Draft->value;
+        $finalStatus = $this->filled('status') ? $this->status : PublishStatus::Draft->value;
 
         $this->merge([
             'title'   => $this->filled('title') ? trim((string) $this->title) : null,
