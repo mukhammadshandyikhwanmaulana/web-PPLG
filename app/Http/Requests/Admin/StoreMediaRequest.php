@@ -35,7 +35,7 @@ class StoreMediaRequest extends FormRequest
             'file' => [
                 'required',
                 'file',
-                'mimes:jpg,jpeg,png,webp,gif,svg,pdf',
+                'mimes:jpg,jpeg,png,webp,gif,pdf',
                 'max:10240',
             ],
             'alt_text' => ['nullable', 'string', 'max:255'],
@@ -47,7 +47,7 @@ class StoreMediaRequest extends FormRequest
         return [
             'file.required' => 'File wajib diunggah.',
             'file.file'     => 'Upload harus berupa berkas yang valid.',
-            'file.mimes'    => 'Format berkas harus jpg, jpeg, png, webp, gif, svg, atau pdf.',
+            'file.mimes'    => 'Format berkas harus jpg, jpeg, png, webp, gif, atau pdf.',
             'file.max'      => 'Ukuran file maksimal 10 MB.',
             'alt_text.max'  => 'Deskripsi media maksimal 255 karakter.',
         ];

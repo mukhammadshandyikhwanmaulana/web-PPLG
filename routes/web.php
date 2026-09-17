@@ -1,6 +1,8 @@
 <?php
 
 use App\Enums\UserRole;
+use Illuminate\Support\Facades\Route;
+
 // Import Controller Auth
 use App\Http\Controllers\Auth\UnifiedLoginController;
 
@@ -40,46 +42,47 @@ use App\Http\Controllers\Public\ProfileController;
 use App\Http\Controllers\Public\StaffMemberController;
 use App\Http\Controllers\Public\StudentWorkController as PublicStudentWorkController;
 use App\Http\Controllers\Public\UnitUsahaController as PublicUnitUsahaController;
-use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| 1. Rute Publik (Frontend Landing Page)
+| 1. Rute Publik (Dilindungi Rate Limiter: Max 60 request / menit)
 |--------------------------------------------------------------------------
 */
+Route::middleware(['throttle:60,1'])->group(function () {
+    Route::get('/', HomeController::class)->name('home');
+    Route::get('/profil', ProfileController::class)->name('public.profile');
+    Route::get('/unit-usaha', PublicUnitUsahaController::class)->name('public.unit-usaha');
+    Route::get('/guru-staf', StaffMemberController::class)->name('public.staff.index');
 
-Route::get('/', HomeController::class)->name('home');
-Route::get('/profil', ProfileController::class)->name('public.profile');
-Route::get('/unit-usaha', PublicUnitUsahaController::class)->name('public.unit-usaha');
-Route::get('/guru-staf', StaffMemberController::class)->name('public.staff.index');
+    // Kegiatan Publik
+    Route::get('/kegiatan', [PublicActivityController::class, 'index'])->name('public.activities.index');
+    Route::get('/kegiatan/{slug}', [PublicActivityController::class, 'show'])->name('public.activities.show');
 
-// Kegiatan Publik
-Route::get('/kegiatan', [PublicActivityController::class, 'index'])->name('public.activities.index');
-Route::get('/kegiatan/{slug}', [PublicActivityController::class, 'show'])->name('public.activities.show');
+    // Prestasi Publik
+    Route::get('/prestasi', [PublicAchievementController::class, 'index'])->name('public.achievements.index');
+    Route::get('/prestasi/{slug}', [PublicAchievementController::class, 'show'])->name('public.achievements.show');
 
-// Prestasi Publik
-Route::get('/prestasi', [PublicAchievementController::class, 'index'])->name('public.achievements.index');
-Route::get('/prestasi/{slug}', [PublicAchievementController::class, 'show'])->name('public.achievements.show');
+    // Galeri Publik
+    Route::get('/galeri', GalleryController::class)->name('public.galleries.index');
 
-// Galeri Publik
-Route::get('/galeri', GalleryController::class)->name('public.galleries.index');
+    // Karya Siswa Publik
+    Route::get('/karya-siswa', [PublicStudentWorkController::class, 'index'])->name('public.student-works.index');
+    Route::get('/karya-siswa/{slug}', [PublicStudentWorkController::class, 'show'])->name('public.student-works.show');
 
-// Karya Siswa Publik
-Route::get('/karya-siswa', [PublicStudentWorkController::class, 'index'])->name('public.student-works.index');
-Route::get('/karya-siswa/{slug}', [PublicStudentWorkController::class, 'show'])->name('public.student-works.show');
-
-// FAQ Publik
-Route::get('/faq', PublicFaqController::class)->name('public.faq.index');
+    // FAQ Publik
+    Route::get('/faq', PublicFaqController::class)->name('public.faq.index');
+});
 
 /*
 |--------------------------------------------------------------------------
-| 2. Rute Autentikasi Terpadu (Single Login Page)
+| 2. Rute Autentikasi (Brute Force Protection di Login POST)
 |--------------------------------------------------------------------------
 */
-
 Route::middleware('guest')->group(function () {
     Route::get('/login', [UnifiedLoginController::class, 'create'])->name('login');
-    Route::post('/login', [UnifiedLoginController::class, 'store'])->name('login.store');
+    Route::post('/login', [UnifiedLoginController::class, 'store'])
+        ->middleware('throttle:5,1') // Maksimal 5x percobaan login per menit
+        ->name('login.store');
 });
 
 Route::post('/logout', [UnifiedLoginController::class, 'destroy'])
@@ -91,7 +94,6 @@ Route::post('/logout', [UnifiedLoginController::class, 'destroy'])
 | 3. Rute Admin Protected (Khusus Role Admin)
 |--------------------------------------------------------------------------
 */
-
 Route::middleware(['auth', 'role:' . UserRole::Admin->value])
     ->prefix('admin')
     ->name('admin.')
@@ -167,7 +169,6 @@ Route::middleware(['auth', 'role:' . UserRole::Admin->value])
 | 4. Rute Guru Protected (Khusus Role Guru & Admin)
 |--------------------------------------------------------------------------
 */
-
 $guruRoles = UserRole::Guru->value . '|' . UserRole::Admin->value;
 
 Route::middleware(['auth', 'role:' . $guruRoles])

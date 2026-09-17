@@ -8,12 +8,19 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class RoleAndUserSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::transaction(function () {
+        // Password diambil dari .env (SEED_ADMIN_PASSWORD / SEED_GURU_PASSWORD) jika ada.
+        // Jika tidak diisi, generate password acak dan tampilkan sekali di terminal.
+        // Dengan cara ini, tidak ada password tetap yang tersimpan di dalam kode/repo.
+        $adminPassword = env('SEED_ADMIN_PASSWORD') ?: Str::password(16);
+        $guruPassword  = env('SEED_GURU_PASSWORD') ?: Str::password(16);
+
+        DB::transaction(function () use ($adminPassword, $guruPassword) {
             // Reset cached roles dan permissions jika Spatie terpasang
             if (class_exists(\Spatie\Permission\PermissionRegistrar::class)) {
                 app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
@@ -33,7 +40,7 @@ class RoleAndUserSeeder extends Seeder
                 ['email' => 'admin@smkn1bangsri.sch.id'],
                 [
                     'name'              => 'Administrator Utama',
-                    'password'          => Hash::make('Admin#2026!Secure'),
+                    'password'          => Hash::make($adminPassword),
                     'role'              => UserRole::Admin->value,
                     'is_active'         => true,
                     'email_verified_at' => now(),
@@ -52,7 +59,7 @@ class RoleAndUserSeeder extends Seeder
                 ['email' => 'guru@smkn1bangsri.sch.id'],
                 [
                     'name'              => 'Guru Pengajar Default',
-                    'password'          => Hash::make('Guru#2026!Secure'),
+                    'password'          => Hash::make($guruPassword),
                     'role'              => UserRole::Guru->value,
                     'is_active'         => true,
                     'email_verified_at' => now(),
@@ -80,5 +87,13 @@ class RoleAndUserSeeder extends Seeder
                 ]
             );
         });
+
+        if ($this->command) {
+            $this->command->newLine();
+            $this->command->warn('=== Kredensial Akun Default (catat sekarang, tidak akan ditampilkan lagi) ===');
+            $this->command->line("Admin  -> admin@smkn1bangsri.sch.id / {$adminPassword}");
+            $this->command->line("Guru   -> guru@smkn1bangsri.sch.id / {$guruPassword}");
+            $this->command->newLine();
+        }
     }
 }
