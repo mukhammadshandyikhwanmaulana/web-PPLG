@@ -13,6 +13,9 @@
                 return $photo ? Storage::url($photo->file_path ?? $photo->path) : $banner->image_url;
             })->filter()
             : collect([asset('images/hero-bg.jpg')]);
+            
+        $hasWelcome = isset($principalWelcome) && $principalWelcome->is_active;
+        $targetAnchor = $hasWelcome ? '#sambutan-kaprog' : '#statistik';
     @endphp
 
     <!-- REDUCED MOTION SUPPORT & ACCESSIBILITY HELPER -->
@@ -124,7 +127,7 @@
 
                 {{-- CTA HERO --}}
                 <div class="flex items-center justify-center">
-                    <a href="#sambutan-kaprog" 
+                    <a href="{{ $targetAnchor }}" 
                        class="inline-flex items-center justify-center px-6 py-3 text-xs sm:text-sm font-semibold text-white bg-transparent border border-white/80 hover:bg-orange-500 hover:border-orange-500 active:bg-orange-600 active:border-orange-600 rounded-lg transition-all duration-200 shadow-md uppercase tracking-wider cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
                         <span>Jelajahi PPLG</span>
                     </a>
@@ -136,96 +139,98 @@
     </section>
 
     <!-- ================= 2. SAMBUTAN KETUA KOMPETENSI KEAHLIAN ================= -->
-    @if(isset($principalWelcome) && $principalWelcome->is_active)
-        @php
-            $staff = $principalWelcome->staffMember;
+    <div id="sambutan-kaprog">
+        @if($hasWelcome)
+            @php
+                $staff = $principalWelcome->staffMember;
 
-            $photoPath = $staff?->photo?->file_path 
-                ?? $staff?->photo?->path 
-                ?? $staff?->photo_path;
+                $photoPath = $staff?->photo?->file_path 
+                    ?? $staff?->photo?->path 
+                    ?? $staff?->photo_path;
 
-            $staffPhotoUrl = $photoPath 
-                ? Storage::url($photoPath) 
-                : asset('images/placeholder-staff.webp');
+                $staffPhotoUrl = $photoPath 
+                    ? Storage::url($photoPath) 
+                    : asset('images/placeholder-staff.webp');
 
-            $staffName = $staff?->name ?? 'Ketua Kompetensi Keahlian';
+                $staffName = $staff?->name ?? 'Ketua Kompetensi Keahlian';
 
-            $rawPosition = $staff?->position ?? '';
-            $positionLower = strtolower($rawPosition);
+                $rawPosition = $staff?->position ?? '';
+                $positionLower = strtolower($rawPosition);
 
-            if (str_contains($positionLower, 'ketua') || str_contains($positionLower, 'kaprog') || str_contains($positionLower, 'kajur') || str_contains($positionLower, 'kepala')) {
-                $staffTitle = 'KETUA KOMPETENSI KEAHLIAN PPLG';
-            } else {
-                $splitPos = explode(',', $rawPosition);
-                $staffTitle = !empty($splitPos[0]) ? strtoupper(trim($splitPos[0])) : 'KETUA KOMPETENSI KEAHLIAN PPLG';
-            }
+                if (str_contains($positionLower, 'ketua') || str_contains($positionLower, 'kaprog') || str_contains($positionLower, 'kajur') || str_contains($positionLower, 'kepala')) {
+                    $staffTitle = 'KETUA KOMPETENSI KEAHLIAN PPLG';
+                } else {
+                    $splitPos = explode(',', $rawPosition);
+                    $staffTitle = !empty($splitPos[0]) ? strtoupper(trim($splitPos[0])) : 'KETUA KOMPETENSI KEAHLIAN PPLG';
+                }
 
-            $contentLength = strlen($principalWelcome->content ?? '');
-        @endphp
+                $contentLength = strlen($principalWelcome->content ?? '');
+            @endphp
 
-        <section id="sambutan-kaprog" class="py-10 sm:py-14 bg-white font-sans border-b border-slate-100">
+            <section class="py-10 sm:py-14 bg-white font-sans border-b border-slate-100">
 
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
 
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start" x-data="{ isExpanded: false }">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start" x-data="{ isExpanded: false }">
 
-                    {{-- FOTO & CARD NAMA KAPROG --}}
-                    <div class="lg:col-span-4 flex flex-col items-center lg:items-start w-full">
-                        <div class="relative w-full max-w-[240px] sm:max-w-[260px] mx-auto lg:mx-0 flex flex-col items-center">
+                        {{-- FOTO & CARD NAMA KAPROG --}}
+                        <div class="lg:col-span-4 flex flex-col items-center lg:items-start w-full">
+                            <div class="relative w-full max-w-[240px] sm:max-w-[260px] mx-auto lg:mx-0 flex flex-col items-center">
 
-                            <div class="w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-sm aspect-[4/5]">
-                                <img src="{{ $staffPhotoUrl }}" 
-                                     alt="{{ $staffName }}" 
-                                     class="w-full h-full object-cover object-top"
-                                     loading="lazy"
-                                     decoding="async"
-                                     onerror="this.src='{{ asset('images/placeholder-staff.webp') }}'">
+                                <div class="w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-sm aspect-[4/5]">
+                                    <img src="{{ $staffPhotoUrl }}" 
+                                         alt="{{ $staffName }}" 
+                                         class="w-full h-full object-cover object-top"
+                                         loading="lazy"
+                                         decoding="async"
+                                         onerror="this.src='{{ asset('images/placeholder-staff.webp') }}'">
+                                </div>
+
+                                <div class="relative z-10 -mt-5 w-[92%] bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/80 shadow-sm text-center lg:text-left">
+                                    <h3 class="font-sans font-semibold text-slate-900 text-xs sm:text-sm leading-snug tracking-tight">
+                                        {{ $staffName }}
+                                    </h3>
+                                    <p class="font-sans text-[11px] font-semibold text-orange-600 uppercase tracking-wider mt-0.5">
+                                        {{ $staffTitle }}
+                                    </p>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        {{-- TEKS SAMBUTAN --}}
+                        <div class="lg:col-span-8 flex flex-col justify-start bg-slate-50 p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm">
+
+                            <div class="mb-3">
+                                <h2 class="font-sans font-semibold text-2xl sm:text-3xl text-slate-900 tracking-tight leading-tight">
+                                    Selamat Datang di Kompetensi Keahlian 
+                                    <br> <span class="text-orange-500">Pengembangan Perangkat Lunak dan Gim </span>
+                                </h2>
+                            </div>
+                            <br>
+                            <div class="relative mb-3">
+                                <div :class="isExpanded ? '' : 'line-clamp-5 sm:line-clamp-6'" 
+                                     class="font-sans text-slate-700 text-sm sm:text-base leading-relaxed font-normal tracking-tight break-words">
+                                    {!! nl2br(e($principalWelcome->content)) !!}
+                                </div>
                             </div>
 
-                            <div class="relative z-10 -mt-5 w-[92%] bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/80 shadow-sm text-center lg:text-left">
-                                <h3 class="font-sans font-semibold text-slate-900 text-xs sm:text-sm leading-snug tracking-tight">
-                                    {{ $staffName }}
-                                </h3>
-                                <p class="font-sans text-[11px] font-semibold text-orange-600 uppercase tracking-wider mt-0.5">
-                                    {{ $staffTitle }}
-                                </p>
-                            </div>
+                            @if($contentLength > 280)
+                                <div class="shrink-0 pt-1">
+                                    <button @click="isExpanded = !isExpanded" 
+                                            class="font-sans inline-flex items-center justify-center px-4 py-2 text-xs sm:text-sm font-semibold text-orange-600 border border-orange-500/30 hover:bg-orange-500 hover:text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer">
+                                        <span x-text="isExpanded ? 'Tampilkan Lebih Sedikit' : 'Baca Selengkapnya...'"></span>
+                                    </button>
+                                </div>
+                            @endif
 
                         </div>
+
                     </div>
-
-                    {{-- TEKS SAMBUTAN --}}
-                    <div class="lg:col-span-8 flex flex-col justify-start bg-slate-50 p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm">
-
-                        <div class="mb-3">
-                            <h2 class="font-sans font-semibold text-2xl sm:text-3xl text-slate-900 tracking-tight leading-tight">
-                                Selamat Datang di Kompetensi Keahlian 
-                                <br> <span class="text-orange-500">Pengembangan Perangkat Lunak dan Gim </span>
-                            </h2>
-                        </div>
-                        <br>
-                        <div class="relative mb-3">
-                            <div :class="isExpanded ? '' : 'line-clamp-5 sm:line-clamp-6'" 
-                                 class="font-sans text-slate-700 text-sm sm:text-base leading-relaxed font-normal tracking-tight break-words">
-                                {!! nl2br(e($principalWelcome->content)) !!}
-                            </div>
-                        </div>
-
-                        @if($contentLength > 280)
-                            <div class="shrink-0 pt-1">
-                                <button @click="isExpanded = !isExpanded" 
-                                        class="font-sans inline-flex items-center justify-center px-4 py-2 text-xs sm:text-sm font-semibold text-orange-600 border border-orange-500/30 hover:bg-orange-500 hover:text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer">
-                                    <span x-text="isExpanded ? 'Tampilkan Lebih Sedikit' : 'Baca Selengkapnya...'"></span>
-                                </button>
-                            </div>
-                        @endif
-
-                    </div>
-
                 </div>
-            </div>
-        </section>
-    @endif
+            </section>
+        @endif
+    </div>
 
     <!-- ================= 2.5 SEKSYEN STATISTIK ================= -->
     <section id="statistik" class="py-8 bg-slate-50/60 font-sans border-b border-slate-200/80">

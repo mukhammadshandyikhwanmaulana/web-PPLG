@@ -54,7 +54,7 @@
                               targetInput: $refs.fileInput,
                               targetPreview: $refs.filePreviewImg,
                               onCropComplete: () => {
-                                  $refs.filePreviewBox.classList.remove('hidden');
+                                  if ($refs.filePreviewBox) $refs.filePreviewBox.classList.remove('hidden');
                                   if ($refs.pdfPreviewBox) $refs.pdfPreviewBox.classList.add('hidden');
                               }
                           });

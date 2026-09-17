@@ -26,6 +26,19 @@ class StoreStudentWorkRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $user = auth()->user();
+        $isGuru = false;
+        
+        if ($user) {
+            $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
+            $isGuru = (method_exists($user, 'hasRole') && $user->hasRole(UserRole::Guru->value)) || ($userRole === UserRole::Guru->value);
+        }
+
+        // Jika user adalah Guru, paksakan status publikasi menjadi Draft
+        $status = $isGuru 
+            ? PublishStatus::Draft->value 
+            : ($this->filled('status') ? $this->status : PublishStatus::Draft->value);
+
         $this->merge([
             'title'            => $this->filled('title') ? trim((string) $this->title) : null,
             'description'      => $this->filled('description') ? trim((string) $this->description) : null,
@@ -33,7 +46,7 @@ class StoreStudentWorkRequest extends FormRequest
             'supervisor_id'    => $this->filled('supervisor_id') ? $this->supervisor_id : null,
             'demo_url'         => $this->filled('demo_url') ? trim((string) $this->demo_url) : null,
             'is_featured'      => $this->boolean('is_featured'),
-            'status'           => $this->filled('status') ? $this->status : PublishStatus::Draft->value,
+            'status'           => $status,
         ]);
     }
 

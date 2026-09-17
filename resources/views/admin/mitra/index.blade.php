@@ -104,7 +104,7 @@
                 <div class="flex items-start gap-3">
                     @if ($logoUrl)
                         <div class="relative group cursor-pointer shrink-0 rounded-xl overflow-hidden border border-slate-200"
-                             @click="openPreview('{{ $logoUrl }}', '{{ addslashes($item->name) }}')">
+                             @click="openPreview(@js($logoUrl), @js($item->name))">
                             <img src="{{ $logoUrl }}" alt="{{ $item->name }}" class="w-16 h-16 object-contain bg-slate-50 p-1">
                             <div class="absolute inset-0 bg-slate-950/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
                                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,7 +214,7 @@
                         <td class="py-3 px-4">
                             @if ($logoUrl)
                                 <div class="relative group cursor-pointer w-14 h-10 rounded-xl overflow-hidden border border-slate-200 shadow-xs bg-slate-50 p-0.5"
-                                     @click="openPreview('{{ $logoUrl }}', '{{ addslashes($item->name) }}')">
+                                     @click="openPreview(@js($logoUrl), @js($item->name))">
                                     <img src="{{ $logoUrl }}" alt="{{ $item->name }}" class="w-full h-full object-contain">
                                     <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
                                         <svg class="w-4 h-4 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">

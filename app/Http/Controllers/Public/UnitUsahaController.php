@@ -10,7 +10,8 @@ class UnitUsahaController extends Controller
 {
     public function __invoke(): View
     {
-        $unitUsaha = UnitUsahaLink::firstOrCreate([], ['is_active' => false]);
+        // Temukan record pertama tanpa memicu pembuatan data baru otomatis saat GET request
+        $unitUsaha = UnitUsahaLink::first() ?? new UnitUsahaLink(['is_active' => false]);
 
         return view('public.unit-usaha.index', [
             'unitUsaha' => $unitUsaha,

@@ -8,7 +8,7 @@
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
-    <!-- Cropper.js CSS via cdnjs Cloudflare (Lebih Stabil & Aman dari Blokir) -->
+    <!-- Cropper.js CSS via cdnjs Cloudflare -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
 
     <style>
@@ -20,8 +20,8 @@
     @stack('styles')
 </head>
 <body class="h-full bg-slate-50 font-sans text-slate-900 antialiased overflow-hidden" 
-     x-data="{ sidebarOpen: false }"
-     @keydown.escape.window="sidebarOpen = false">
+      x-data="{ sidebarOpen: false }"
+      @keydown.escape.window="sidebarOpen = false">
     
     @php
         $user = auth()->user();
@@ -454,7 +454,7 @@
             </div>
 
             <div class="p-4 flex-1 overflow-hidden flex items-center justify-center bg-slate-900 min-h-[300px]">
-                <img x-ref="cropImage" src="" class="max-w-full max-h-[60vh] object-contain">
+                <img x-ref="cropImage" :src="imageSrc" class="max-w-full max-h-[60vh] object-contain">
             </div>
 
             <div class="px-5 py-4 border-t border-slate-100 bg-white flex items-center justify-end gap-2.5">
@@ -495,6 +495,7 @@
                 open: false,
                 cropper: null,
                 title: 'Potong Gambar',
+                imageSrc: '',
                 aspectRatio: 1,
                 targetInput: null,
                 targetPreview: null,
@@ -511,7 +512,7 @@
 
                     const reader = new FileReader();
                     reader.onload = (e) => {
-                        this.$refs.cropImage.src = e.target.result;
+                        this.imageSrc = e.target.result;
                         this.open = true;
                         this.$nextTick(() => {
                             if (this.cropper) {

@@ -39,6 +39,19 @@ class UpdateStudentWorkRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $user = auth()->user();
+        $isGuru = false;
+
+        if ($user) {
+            $userRole = strtolower($user->role instanceof UserRole ? $user->role->value : ($user->role ?? ''));
+            $isGuru = (method_exists($user, 'hasRole') && $user->hasRole(UserRole::Guru->value)) || ($userRole === UserRole::Guru->value);
+        }
+
+        // Paksakan status tetap Draft jika diubah oleh Guru
+        $status = $isGuru 
+            ? PublishStatus::Draft->value 
+            : ($this->filled('status') ? $this->status : null);
+
         $this->merge([
             'title'            => $this->filled('title') ? trim((string) $this->title) : null,
             'description'      => $this->filled('description') ? trim((string) $this->description) : null,
@@ -46,7 +59,7 @@ class UpdateStudentWorkRequest extends FormRequest
             'supervisor_id'    => $this->filled('supervisor_id') ? $this->supervisor_id : null,
             'demo_url'         => $this->filled('demo_url') ? trim((string) $this->demo_url) : null,
             'is_featured'      => $this->boolean('is_featured'),
-            'status'           => $this->filled('status') ? $this->status : null,
+            'status'           => $status,
         ]);
     }
 

@@ -56,9 +56,14 @@ class StudentWorkController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        // Mengelompokkan klausa OR agar precedence SQL aman dan efisien
         $supervisors = StaffMember::query()
-            ->active()
-            ->when($supervisorId, fn($q) => $q->orWhere('id', $supervisorId))
+            ->where(function ($q) use ($supervisorId) {
+                $q->active();
+                if ($supervisorId) {
+                    $q->orWhere('id', $supervisorId);
+                }
+            })
             ->orderBy('name')
             ->get();
 
@@ -134,9 +139,14 @@ class StudentWorkController extends Controller
     public function edit(StudentWork $studentWork): View
     {
         $studentWork->load(['cover', 'galleries.media', 'creator']);
+        
         $supervisors = StaffMember::query()
-            ->active()
-            ->when($studentWork->supervisor_id, fn($q) => $q->orWhere('id', $studentWork->supervisor_id))
+            ->where(function ($q) use ($studentWork) {
+                $q->active();
+                if ($studentWork->supervisor_id) {
+                    $q->orWhere('id', $studentWork->supervisor_id);
+                }
+            })
             ->orderBy('name')
             ->get();
 

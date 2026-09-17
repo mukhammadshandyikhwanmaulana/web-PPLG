@@ -9,7 +9,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <!-- Cropper.js CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" integrity="sha512-hvNR0F/e2J7zPPfLC9auFe3/SE0yG4aJCOd/qxew74NN7eyiSKjr7xJJMu1Jy2wf7FXITpWS1E/RY8yzuXN7VA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
         [x-cloak] { display: none !important; }
@@ -44,7 +44,7 @@
 
         {{-- Sidebar Guru --}}
         <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static shrink-0 flex flex-col h-full shadow-xl lg:shadow-none"
-               :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+                :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
             
             <div class="px-4 py-4 border-b border-slate-800 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2.5 min-w-0">
@@ -288,7 +288,7 @@
         </div>
     </div>
 
-    <!-- Cropper.js Script (Tanpa integrity agar tidak terblokir oleh browser) -->
+    <!-- Cropper.js Script -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <script>
@@ -309,6 +309,94 @@
                 localStorage.setItem('guru_sidebar_scroll_pos', nav.scrollTop);
             });
         })();
+
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('globalImageCropper', () => ({
+                open: false,
+                cropper: null,
+                title: 'Potong Gambar',
+                imageSrc: '',
+                aspectRatio: 1,
+                targetInput: null,
+                targetPreview: null,
+                currentFile: null,
+                onCropComplete: null,
+
+                initCrop(detail) {
+                    this.title = detail.title || 'Potong Gambar';
+                    this.aspectRatio = detail.aspectRatio || 1;
+                    this.targetInput = detail.targetInput;
+                    this.targetPreview = detail.targetPreview;
+                    this.currentFile = detail.file;
+                    this.onCropComplete = detail.onCropComplete || null;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.imageSrc = e.target.result;
+                        this.open = true;
+                        this.$nextTick(() => {
+                            if (this.cropper) {
+                                this.cropper.destroy();
+                            }
+                            this.cropper = new Cropper(this.$refs.cropImage, {
+                                aspectRatio: this.aspectRatio,
+                                viewMode: 1,
+                                autoCropArea: 1,
+                                responsive: true
+                            });
+                        });
+                    };
+                    reader.readAsDataURL(detail.file);
+                },
+
+                applyCrop() {
+                    if (!this.cropper) return;
+
+                    const canvas = this.cropper.getCroppedCanvas();
+                    if (!canvas) {
+                        alert('Gagal memproses potongan gambar.');
+                        return;
+                    }
+
+                    canvas.toBlob((blob) => {
+                        if (!blob) return;
+
+                        const croppedFile = new File([blob], this.currentFile.name, {
+                            type: this.currentFile.type || 'image/png',
+                            lastModified: Date.now()
+                        });
+
+                        if (this.targetInput) {
+                            const container = new DataTransfer();
+                            container.items.add(croppedFile);
+                            this.targetInput.files = container.files;
+                        }
+
+                        if (this.targetPreview) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                this.targetPreview.src = e.target.result;
+                            };
+                            reader.readAsDataURL(croppedFile);
+                        }
+
+                        if (typeof this.onCropComplete === 'function') {
+                            this.onCropComplete(croppedFile);
+                        }
+
+                        this.closeModal();
+                    }, this.currentFile.type || 'image/png');
+                },
+
+                closeModal() {
+                    this.open = false;
+                    if (this.cropper) {
+                        this.cropper.destroy();
+                        this.cropper = null;
+                    }
+                }
+            }));
+        });
     </script>
 
     @stack('scripts')

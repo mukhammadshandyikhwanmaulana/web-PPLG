@@ -11,19 +11,28 @@
         </div>
     </section>
 
+    @php
+        // Normalisasi variabel agar mendukung objek tunggal ($unitUsaha) maupun koleksi ($unitUsahaList)
+        $items = isset($unitUsahaList) && $unitUsahaList instanceof \Illuminate\Support\Collection 
+            ? $unitUsahaList 
+            : (isset($unitUsaha) && $unitUsaha ? collect([$unitUsaha]) : collect());
+        
+        $activeItems = $items->filter(fn($item) => (bool) ($item->is_active ?? true));
+    @endphp
+
     <!-- Section Content Unit Usaha -->
     <section class="py-16 bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            @if($unitUsahaList->isNotEmpty())
+            @if($activeItems->isNotEmpty())
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    @foreach($unitUsahaList as $unit)
+                    @foreach($activeItems as $unit)
                         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col justify-between hover:shadow-md transition">
                             <div class="p-6">
                                 <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold text-xl mb-4">
                                     {{ strtoupper(substr($unit->name ?? 'U', 0, 1)) }}
                                 </div>
                                 <h3 class="text-xl font-bold text-slate-900 mb-2">
-                                    {{ $unit->name }}
+                                    {{ $unit->name ?? 'Unit Usaha Sekolah' }}
                                 </h3>
                                 <p class="text-sm text-slate-600 leading-relaxed line-clamp-4">
                                     {{ $unit->description ?? 'Layanan unit usaha aktif sekolah.' }}
