@@ -46,7 +46,7 @@
         <!-- HERO HEADER -->
         <section class="bg-orange-500 text-white font-sans pt-32 sm:pt-40 pb-20 sm:pb-28 flex items-center justify-center">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                <h1 class="font-sans font-bold text-2xl sm:text-3xl lg:text-4xl text-white tracking-tight leading-tight">
+                <h1 class="font-sans font-semibold text-2xl sm:text-3xl lg:text-4xl text-white tracking-tight leading-tight">
                     Detail Kegiatan
                 </h1>
             </div>

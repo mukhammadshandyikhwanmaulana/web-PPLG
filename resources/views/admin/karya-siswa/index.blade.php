@@ -43,7 +43,7 @@
         </div>
         <div>
             <a href="{{ route('admin.karya-siswa.create') }}"
-               class="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-xl shadow-xs transition duration-150 text-sm">
+               class="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-xl shadow-xs transition duration-150 text-sm cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
@@ -71,7 +71,7 @@
                 @if(request('search'))
                     <a href="{{ route('admin.karya-siswa.index', request()->except('search')) }}" 
                        title="Hapus kata kunci pencarian"
-                       class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition">
+                       class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition cursor-pointer">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -110,7 +110,7 @@
 
             @if($hasFilter)
                 <a href="{{ route('admin.karya-siswa.index') }}" 
-                   class="flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-sm font-medium px-4 py-2.5 rounded-xl transition duration-150 shrink-0">
+                   class="flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-sm font-medium px-4 py-2.5 rounded-xl transition duration-150 shrink-0 cursor-pointer">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                     </svg>
@@ -173,7 +173,7 @@
                         @if($item->demo_url)
                             <div class="mt-1.5">
                                 <a href="{{ $item->demo_url }}" target="_blank" rel="noopener noreferrer" 
-                                   class="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-600 hover:underline">
+                                   class="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-600 hover:underline cursor-pointer">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                                     </svg>
@@ -217,7 +217,7 @@
 
                     <div class="flex items-center gap-3 shrink-0">
                         <a href="{{ route('admin.karya-siswa.edit', $item) }}"
-                           class="inline-flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-900 transition leading-none">
+                           class="inline-flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-900 transition leading-none cursor-pointer">
                             Edit
                         </a>
                         <form action="{{ route('admin.karya-siswa.destroy', $item) }}" method="POST" class="inline-flex items-center m-0 p-0"
@@ -276,7 +276,7 @@
                                 <div class="relative group cursor-pointer w-14 h-10 rounded-xl overflow-hidden border border-slate-200 shadow-xs" 
                                      @click="openPreview('{{ $coverUrl }}', 'Preview Foto Sampul Utama')">
                                     <img src="{{ $coverUrl }}" alt="{{ $item->title }}" class="w-14 h-10 object-cover transition-transform duration-300 group-hover:scale-110">
-                                    <div class="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                                    <div class="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white cursor-pointer">
                                         <svg class="w-4 h-4 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
@@ -303,7 +303,7 @@
                             @if($item->demo_url)
                                 <div class="mt-1">
                                     <a href="{{ $item->demo_url }}" target="_blank" rel="noopener noreferrer" 
-                                       class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline">
+                                       class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline cursor-pointer">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                                         </svg>
@@ -349,7 +349,7 @@
                         <td class="py-3 px-4 text-right whitespace-nowrap">
                             <div class="flex items-center justify-end gap-3">
                                 <a href="{{ route('admin.karya-siswa.edit', $item) }}"
-                                   class="inline-flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-900 transition leading-none">
+                                   class="inline-flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-900 transition leading-none cursor-pointer">
                                     Edit
                                 </a>
                                 <form action="{{ route('admin.karya-siswa.destroy', $item) }}" method="POST" class="inline-flex items-center m-0 p-0"
@@ -397,7 +397,7 @@
          x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs cursor-default"
          x-cloak>
         
         <div class="relative max-w-4xl w-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col max-h-[90vh]"

@@ -130,7 +130,7 @@
                         </div>
                         @error('avatar')
                             <p class="text-xs text-rose-600 font-medium pt-1">{{ $message }}</p>
-                        @errorEnd
+                        @enderror
                     </div>
                 </div>
 
