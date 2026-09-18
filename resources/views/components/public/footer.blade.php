@@ -1,9 +1,9 @@
 <footer class="bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800 font-sans mt-auto shrink-0">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-slate-800">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-12 border-b border-slate-800">
 
-            <!-- Identitas Sekolah -->
-            <div class="space-y-4 md:col-span-1">
+            <!-- Identitas Sekolah (Diperkecil ke 3 kolom) -->
+            <div class="space-y-4 lg:col-span-3">
                 <div class="flex items-center gap-3">
                     <img src="{{ asset('images/logo-pplg.png') }}" 
                          alt="Logo PPLG" 
@@ -18,44 +18,20 @@
                 </p>
             </div>
 
-            <!-- Tautan Navigasi Cepat -->
-            <div>
+            <!-- Tautan Navigasi Cepat (Lebar: 2 kolom) -->
+            <div class="lg:col-span-2">
                 <h4 class="text-xs font-bold text-white uppercase tracking-wider mb-4">Navigasi Cepat</h4>
                 <ul class="space-y-2.5 text-sm">
                     <li>
                         <a href="{{ route('home') }}" class="hover:text-orange-400 transition-colors duration-200">Beranda</a>
                     </li>
                     <li>
-                        <a href="{{ route('public.profile') }}" class="hover:text-orange-400 transition-colors duration-200">Tentang / Profil</a>
-                    </li>
-                    <li>
-                        <a href="{{ route('public.profile') }}#guru-staf" class="hover:text-orange-400 transition-colors duration-200">Guru &amp; Staf Pengajar</a>
-                    </li>
-                    <li>
-                        <a href="{{ route('public.achievements.index') }}" class="hover:text-orange-400 transition-colors duration-200">Prestasi Siswa</a>
-                    </li>
-                    <li>
-                        <a href="{{ route('public.activities.index') }}" class="hover:text-orange-400 transition-colors duration-200">Kegiatan PPLG</a>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Dokumentasi & Informasi -->
-            <div>
-                <h4 class="text-xs font-bold text-white uppercase tracking-wider mb-4">Informasi</h4>
-                <ul class="space-y-2.5 text-sm">
-                    <li>
-                        <a href="{{ route('public.student-works.index') }}" class="hover:text-orange-400 transition-colors duration-200">Karya Siswa</a>
-                    </li>
-                    <li>
-                        {{-- PERBAIKAN: Mengarahkan rute ke halaman Galeri Dokumentasi Utama (public.galleries.index) --}}
                         <a href="{{ route('public.galleries.index') }}" class="hover:text-orange-400 transition-colors duration-200">Galeri &amp; Dokumentasi</a>
                     </li>
                     <li>
                         <a href="{{ route('home') }}#faq" class="hover:text-orange-400 transition-colors duration-200">Pertanyaan Umum (FAQ)</a>
                     </li>
 
-                    {{-- Bagian Tautan Unit Usaha --}}
                     @if(isset($unitUsahaLink) && !empty($unitUsahaLink?->is_active) && (!empty($unitUsahaLink?->external_url) || !empty($unitUsahaLink?->url)))
                         <li>
                             <a href="{{ $unitUsahaLink->external_url ?? $unitUsahaLink->url }}" target="_blank" rel="noopener noreferrer" class="hover:text-orange-400 transition-colors duration-200 inline-flex items-center gap-1">
@@ -66,9 +42,9 @@
                 </ul>
             </div>
 
-            <!-- Kontak & Alamat Dinamis -->
-            <div>
-                <h4 class="text-xs font-bold text-white uppercase tracking-wider mb-4">Kontak Jurusan</h4>
+            <!-- Kontak (Diperlebar ke 4 kolom agar alamat & email tidak sesak) -->
+            <div class="lg:col-span-4 space-y-4">
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider mb-4">Kontak</h4>
                 <ul class="space-y-3 text-sm text-slate-400">
                     @if(!empty($siteSetting?->contact_address))
                         <li class="flex items-start gap-2.5">
@@ -103,11 +79,10 @@
 
                 <!-- Media Sosial Links -->
                 @if(!empty($siteSetting?->tiktok_url) || !empty($siteSetting?->instagram_url) || !empty($siteSetting?->youtube_url))
-                    <div class="mt-4 pt-4 border-t border-slate-800">
+                    <div class="pt-2">
                         <p class="text-xs font-semibold text-slate-400 mb-2.5">Ikuti Media Sosial</p>
                         <div class="flex items-center gap-2.5">
 
-                            {{-- TikTok Icon --}}
                             @if(!empty($siteSetting->tiktok_url))
                                 <a href="{{ $siteSetting->tiktok_url }}" target="_blank" rel="noopener noreferrer" 
                                    class="w-9 h-9 flex items-center justify-center bg-black hover:bg-slate-800 text-white rounded-xl transition-all duration-200 group border border-slate-700/80 shadow-xs shrink-0" 
@@ -118,7 +93,6 @@
                                 </a>
                             @endif
 
-                            {{-- Instagram Icon --}}
                             @if(!empty($siteSetting->instagram_url))
                                 <a href="{{ $siteSetting->instagram_url }}" target="_blank" rel="noopener noreferrer" 
                                    class="w-9 h-9 flex items-center justify-center bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 hover:opacity-90 text-white rounded-xl transition-all duration-200 group shadow-xs shrink-0" 
@@ -129,7 +103,6 @@
                                 </a>
                             @endif
 
-                            {{-- YouTube Icon --}}
                             @if(!empty($siteSetting->youtube_url))
                                 <a href="{{ $siteSetting->youtube_url }}" target="_blank" rel="noopener noreferrer" 
                                    class="w-9 h-9 flex items-center justify-center bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-all duration-200 group shadow-xs shrink-0" 
@@ -143,6 +116,20 @@
                         </div>
                     </div>
                 @endif
+            </div>
+
+            <!-- Lokasi Peta (Lebar: 3 kolom) -->
+            <div class="lg:col-span-3">
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider mb-4">Lokasi</h4>
+                <div class="w-full h-44 rounded-2xl overflow-hidden border border-slate-800 shadow-md bg-slate-950">
+                    <iframe 
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3963.953302386802!2d110.74833347317221!3d-6.527582363810434!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e71224fcb07076b%3A0xd0eadbcc365f1b0d!2sSMK%20Negeri%201%20Bangsri!5e0!3m2!1sid!2sid!4v1789706006367!5m2!1sid!2sid" 
+                        class="w-full h-full border-0" 
+                        allowfullscreen="" 
+                        loading="lazy" 
+                        referrerpolicy="strict-origin-when-cross-origin">
+                    </iframe>
+                </div>
             </div>
 
         </div>
